@@ -152,9 +152,17 @@
     <a href="index.html" class="logo-link" style="opacity: 0.85;">
       <img src="assets/images/logo.svg" alt="DEARLY" style="height: 30px;">
     </a>
-    <button type="button" class="sound-toggle-btn" id="btn-audio-toggle" title="Toggle gentle sound" aria-label="Toggle audio">
-      🎵
-    </button>
+    <div class="music-player-pill" id="dearly-music-control" role="region" aria-label="Background music controls">
+      <button type="button" class="btn-music-toggle" id="btn-audio-toggle" title="Play peaceful romantic music" aria-label="Toggle romantic music">
+        <span class="music-icon">🎵</span>
+        <span class="music-label">Romantic Music</span>
+        <span class="music-equalizer" aria-hidden="true">
+          <span class="eq-bar"></span>
+          <span class="eq-bar"></span>
+          <span class="eq-bar"></span>
+        </span>
+      </button>
+    </div>
   </header>
 
   <!-- Main Story Container -->
@@ -224,17 +232,9 @@
         dummyPlayer.renderNotFound();
       }
 
-      // Audio Toggle setup
-      const audioBtn = document.getElementById('btn-audio-toggle');
-      if (audioBtn && window.dearlyAudio) {
-        audioBtn.addEventListener('click', () => {
-          const isMuted = window.dearlyAudio.toggleMute();
-          audioBtn.textContent = isMuted ? '🔇' : '🎵';
-          if (!isMuted) {
-            window.dearlyAudio.playHeartPop();
-            window.dearlyAudio.startAmbient();
-          }
-        });
+      // Audio Controls setup
+      if (window.dearlyAudio) {
+        window.dearlyAudio.init();
       }
     });
   </script>

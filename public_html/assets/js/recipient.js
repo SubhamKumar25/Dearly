@@ -149,9 +149,19 @@ class DearlyStoryPlayer {
           <div class="envelope-seal">❤️</div>
         </div>
 
-        <p style="font-size: 0.88rem; color: var(--text-light); margin-top: 24px; margin-bottom: 24px;">
-          From ${this.escapeHtml(sender)}
-        </p>
+        <!-- Gentle Romantic Music Invitation -->
+        <div class="story-music-invite" id="story-music-invite-banner">
+          <p class="music-invite-text">Make this moment a little more special ♡</p>
+          <button type="button" class="btn-music-invite-play" id="btn-story-play-music" aria-label="Play peaceful romantic music">
+            <span class="invite-icon">🎵</span>
+            <span class="invite-label">Play Music</span>
+            <span class="music-equalizer" aria-hidden="true">
+              <span class="eq-bar"></span>
+              <span class="eq-bar"></span>
+              <span class="eq-bar"></span>
+            </span>
+          </button>
+        </div>
 
         <button type="button" class="btn btn-primary btn-lg" id="btn-open-story">
           Open Your Gift ✨
@@ -461,6 +471,16 @@ class DearlyStoryPlayer {
         if (window.dearlyAudio) window.dearlyAudio.playHeartPop();
         setTimeout(() => this.nextScreen(), 500);
       });
+    }
+
+    // 1b. Music Invitation Toggle
+    const btnMusicInvite = document.getElementById('btn-story-play-music');
+    if (btnMusicInvite && window.dearlyAudio) {
+      btnMusicInvite.addEventListener('click', () => {
+        window.dearlyAudio.togglePlay();
+      });
+      // Synchronize initial state
+      window.dearlyAudio.syncUI();
     }
 
     // 2. Next / Prev navigation

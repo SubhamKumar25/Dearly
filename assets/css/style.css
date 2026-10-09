@@ -2112,4 +2112,191 @@ body.nav-open {
   margin: 40px auto;
 }
 
+/* ==========================================================================
+   DEARLY — Peaceful Romantic Background Music UI
+   ========================================================================== */
+
+.music-player-pill {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  z-index: 60;
+}
+
+.btn-music-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-main);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.btn-music-toggle:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-primary-hover);
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.12);
+  color: var(--color-primary);
+}
+
+.btn-music-toggle.is-playing {
+  background: var(--color-primary-subtle);
+  border-color: var(--color-love-border);
+  color: var(--color-primary-hover);
+  box-shadow: 0 4px 18px rgba(244, 63, 94, 0.18);
+}
+
+.music-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.music-label {
+  letter-spacing: -0.01em;
+}
+
+/* Subtle Animated Equalizer Waves */
+.music-equalizer {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  padding: 0 1px;
+}
+
+.eq-bar {
+  width: 2.5px;
+  height: 3px;
+  background: var(--text-muted);
+  border-radius: 999px;
+  transition: height 0.2s ease, background 0.2s ease;
+}
+
+.is-playing .eq-bar {
+  background: var(--color-primary);
+  animation: eqWave 1.2s ease-in-out infinite alternate;
+}
+
+.is-playing .eq-bar:nth-child(1) { animation-delay: 0.0s; }
+.is-playing .eq-bar:nth-child(2) { animation-delay: 0.25s; }
+.is-playing .eq-bar:nth-child(3) { animation-delay: 0.5s; }
+
+@keyframes eqWave {
+  0% { height: 3px; }
+  50% { height: 11px; }
+  100% { height: 5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-playing .eq-bar {
+    animation: none;
+    height: 7px;
+  }
+}
+
+/* --- Recipient Screen 1: Music Invitation Banner --- */
+.story-music-invite {
+  background: linear-gradient(135deg, rgba(255, 241, 242, 0.85) 0%, rgba(255, 251, 235, 0.7) 100%);
+  border: 1px solid var(--color-love-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin: 18px auto 20px;
+  max-width: 380px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(244, 63, 94, 0.06);
+  transition: transform var(--transition-fast);
+}
+
+.story-music-invite:hover {
+  transform: translateY(-1px);
+}
+
+.music-invite-text {
+  font-family: var(--font-heading);
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.btn-music-invite-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #FFFFFF;
+  border: 1.5px solid var(--color-love-border);
+  border-radius: var(--radius-full);
+  padding: 8px 18px;
+  font-family: var(--font-heading);
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.08);
+  transition: all var(--transition-fast);
+}
+
+.btn-music-invite-play:hover {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  border-color: var(--color-primary);
+  transform: scale(1.03);
+  box-shadow: 0 6px 18px rgba(244, 63, 94, 0.25);
+}
+
+.btn-music-invite-play.is-playing {
+  background: #FFFFFF;
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.12);
+}
+
+.btn-music-invite-play.is-playing:hover {
+  background: var(--color-primary-hover);
+  color: #FFFFFF;
+}
+
+/* Floating Music Control Widget (Alternative for compact pages) */
+.floating-music-widget {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 50;
+  transition: transform var(--transition-fast);
+}
+
+@media (max-width: 640px) {
+  .btn-music-toggle {
+    padding: 5px 10px;
+    font-size: 0.78rem;
+  }
+  .btn-music-toggle .music-label {
+    display: none;
+  }
+  .story-music-invite {
+    padding: 12px 14px;
+    margin: 14px auto 16px;
+  }
+  .floating-music-widget {
+    bottom: 16px;
+    right: 16px;
+  }
+}
+
 

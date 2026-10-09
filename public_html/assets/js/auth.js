@@ -397,9 +397,13 @@ class DearlyAuthService {
       </button>
     ` : '';
 
+    const existingMusicPill = navActions.querySelector('#dearly-music-control, .music-player-pill');
+    const musicHtml = existingMusicPill ? existingMusicPill.outerHTML : '';
+
     if (this.user) {
       const name = this.getUserName();
       navActions.innerHTML = `
+        ${musicHtml}
         <a href="dashboard.html" class="nav-bell-btn" title="View Notifications & Responses" aria-label="Notifications">
           🔔
           <span class="nav-bell-badge" style="${this.unreadNotificationsCount > 0 ? 'display:inline-flex;' : 'display:none;'}">
@@ -421,10 +425,16 @@ class DearlyAuthService {
       }
     } else {
       navActions.innerHTML = `
+        ${musicHtml}
         <a href="auth.html" class="btn btn-ghost btn-sm">Log In</a>
         <a href="#experiences" class="btn btn-primary btn-sm">Create Gift ✨</a>
         ${toggleHtml}
       `;
+    }
+
+    if (window.dearlyAudio) {
+      window.dearlyAudio.bindControls();
+      window.dearlyAudio.syncUI();
     }
 
     // Sync desktop and mobile dashboard links across pages

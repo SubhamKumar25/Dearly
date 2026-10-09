@@ -207,7 +207,16 @@
         <span><strong>Creator Preview</strong></span>
         <span class="preview-mode-subtext">(Review before sharing)</span>
       </div>
-      <div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" class="btn-music-toggle" id="btn-audio-toggle" title="Play romantic background music" aria-label="Toggle romantic music">
+          <span class="music-icon">🎵</span>
+          <span class="music-label">Romantic Music</span>
+          <span class="music-equalizer" aria-hidden="true">
+            <span class="eq-bar"></span>
+            <span class="eq-bar"></span>
+            <span class="eq-bar"></span>
+          </span>
+        </button>
         <button type="button" class="btn btn-ghost btn-sm btn-preview-back" id="btn-preview-back-top">
           ✏️ Edit Gift
         </button>

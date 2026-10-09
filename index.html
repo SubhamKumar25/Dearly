@@ -41,14 +41,28 @@
             style="color: var(--color-primary); font-weight: 700;">My Surprises</a></li>
       </ul>
 
-      <!-- Nav CTA & Mobile Toggle -->
-      <div class="nav-actions">
-        <a href="auth.html" class="btn btn-ghost btn-sm" id="btn-nav-login">Log In</a>
-        <a href="#experiences" class="btn btn-primary btn-sm" id="btn-header-create">Create Gift ✨</a>
-        <button type="button" class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Open navigation menu"
-          aria-expanded="false">
-          ☰
-        </button>
+      <!-- Header Actions (Music + Auth/CTA) -->
+      <div class="nav-right-group" style="display: flex; align-items: center; gap: var(--space-sm);">
+        <div class="music-player-pill" id="dearly-music-control" role="region" aria-label="Background music controls">
+          <button type="button" class="btn-music-toggle" id="btn-audio-toggle" title="Play peaceful romantic music" aria-label="Toggle romantic music">
+            <span class="music-icon">🎵</span>
+            <span class="music-label">Romantic Music</span>
+            <span class="music-equalizer" aria-hidden="true">
+              <span class="eq-bar"></span>
+              <span class="eq-bar"></span>
+              <span class="eq-bar"></span>
+            </span>
+          </button>
+        </div>
+
+        <div class="nav-actions">
+          <a href="auth.html" class="btn btn-ghost btn-sm" id="btn-nav-login">Log In</a>
+          <a href="#experiences" class="btn btn-primary btn-sm" id="btn-header-create">Create Gift ✨</a>
+          <button type="button" class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Open navigation menu"
+            aria-expanded="false">
+            ☰
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -68,6 +82,17 @@
       <a href="auth.html" class="nav-link" id="drawer-login-link">👤 Log In / Sign Up</a>
       <a href="dashboard.html" class="nav-link" id="drawer-dashboard-link"
         style="display: none; color: var(--color-primary); font-weight: 700;">🎁 My Surprises & Replies</a>
+      <div style="padding: 12px 0; border-top: 1px solid var(--border-light); margin-top: 8px;">
+        <button type="button" class="btn-music-toggle" style="width: 100%; justify-content: center;" aria-label="Toggle romantic music">
+          <span class="music-icon">🎵</span>
+          <span class="music-label">Romantic Music</span>
+          <span class="music-equalizer" aria-hidden="true">
+            <span class="eq-bar"></span>
+            <span class="eq-bar"></span>
+            <span class="eq-bar"></span>
+          </span>
+        </button>
+      </div>
     </nav>
   </div>
 

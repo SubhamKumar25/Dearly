@@ -80,18 +80,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 3. Audio Control Widget (if present or on story screens)
-  const audioBtn = document.getElementById('btn-audio-toggle');
-  if (audioBtn && window.dearlyAudio) {
-    audioBtn.addEventListener('click', () => {
-      const isMuted = window.dearlyAudio.toggleMute();
-      audioBtn.textContent = isMuted ? '🔇' : '🎵';
-      audioBtn.setAttribute('title', isMuted ? 'Unmute Sound' : 'Mute Sound');
-      if (!isMuted) {
-        window.dearlyAudio.playHeartPop();
-        window.dearlyAudio.startAmbient();
-      }
-    });
+  // 3. Audio Control Widget handled centrally by window.dearlyAudio
+  if (window.dearlyAudio) {
+    window.dearlyAudio.bindControls();
+    window.dearlyAudio.syncUI();
   }
 
   // 4. Subtle Ambient Floating Hearts on Homepage
