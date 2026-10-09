@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEARLY — Preview Your Experience</title>
+  <meta name="description" content="Preview the exact animated surprise your recipient will experience before creating the shareable link.">
+  <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/animations.css">
+
+  <style>
+    /* Preview Page Specific Styling */
+    .preview-banner {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border-light);
+      padding: 12px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    }
+    .preview-banner-inner {
+      max-width: var(--max-width-content);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .preview-mode-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .preview-wrapper {
+      min-height: calc(100vh - 70px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px 80px;
+    }
+    .story-card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-xl);
+      padding: 36px 28px;
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-lg);
+      max-width: var(--max-width-story);
+      width: 100%;
+      margin: 0 auto;
+      position: relative;
+    }
+    .story-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 14px;
+      border-radius: var(--radius-full);
+      font-size: 0.82rem;
+      font-weight: 700;
+      background: var(--color-primary-light);
+      color: var(--color-primary-hover);
+      margin-bottom: 12px;
+    }
+    .story-progress-bar {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+    .story-progress-pip {
+      width: 24px;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--border-light);
+      transition: background 0.3s ease;
+    }
+    .story-progress-pip.active {
+      background: var(--color-primary);
+    }
+    .story-progress-pip.completed {
+      background: var(--color-primary-light);
+    }
+    .story-quote-box {
+      margin: 28px 0 32px;
+      padding: 20px 16px;
+      position: relative;
+    }
+    .story-quote-mark {
+      font-size: 3rem;
+      line-height: 1;
+      color: var(--color-primary-light);
+      font-family: serif;
+    }
+    .story-quote-mark.end {
+      text-align: right;
+    }
+    .story-quote-text {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.6;
+      font-style: italic;
+    }
+    .story-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+  </style>
+</head>
+<body class="preview-page" id="preview-wrapper">
+
+  <!-- Ambient Particles -->
+  <div id="ambient-particles" class="ambient-particles-container"></div>
+
+  <!-- Top Preview Bar -->
+  <aside class="preview-banner" aria-label="Preview Mode Notice">
+    <div class="preview-banner-inner">
+      <div class="preview-mode-tag">
+        <span>👁️ <strong>Creator Preview</strong></span>
+        <span style="font-weight: 400; font-size: 0.85rem; color: var(--text-light);">(Step through to test recipient experience)</span>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-preview-back">
+          ✏️ Back to Edit
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-preview-publish">
+          ✨ Create & Share
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Interactive Story Mount Container -->
+  <main class="preview-wrapper">
+    <div id="story-container" style="width: 100%;">
+      <!-- Mounted by recipient.js and preview.js -->
+    </div>
+  </main>
+
+  <!-- Share & Publish Modal Overlay -->
+  <div class="modal-overlay" id="share-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-content">
+      <button type="button" class="modal-close-btn" id="btn-close-modal" aria-label="Close modal">✕</button>
+
+      <!-- Step 1: Publishing Progress -->
+      <div id="modal-step-loading" style="display: none; padding: 24px 0;">
+        <div style="font-size: 2.8rem; margin-bottom: 16px;" class="animate-heartbeat">💌</div>
+        <h3 id="modal-title" style="font-size: 1.35rem; margin-bottom: 8px;">Preparing Your Moment...</h3>
+        <p style="color: var(--text-muted); font-size: 0.92rem;">
+          Uploading memories and generating your private shareable link...
+        </p>
+      </div>
+
+      <!-- Step 2: Shareable Link Generated -->
+      <div id="modal-step-success" style="display: none;">
+        <div style="font-size: 2.8rem; margin-bottom: 12px;">🎉</div>
+        <h3 style="font-size: 1.45rem; margin-bottom: 8px;">Your DEARLY is Ready!</h3>
+        <p style="color: var(--text-muted); font-size: 0.94rem; margin-bottom: 20px;">
+          Send this private link to your recipient. They will experience the full animated story on their phone or computer.
+        </p>
+
+        <!-- Share Input Box -->
+        <div style="position: relative; margin-bottom: 18px;">
+          <input type="text" id="share-link-input" class="form-input" readonly 
+                 style="padding-right: 105px; font-size: 0.9rem; background: var(--bg-surface-soft); font-weight: 500;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-link" 
+                  style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%);">
+            Copy Link
+          </button>
+        </div>
+
+        <!-- Sharing Actions -->
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;">
+          <button type="button" class="btn btn-primary" id="btn-share-whatsapp" style="background: #25D366; border-color: #25D366; color: white;">
+            💬 Share on WhatsApp
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-share-native" style="display: none;">
+            📤 Share via...
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-open-gift">
+            Open Surprise Page Directly ↗
+          </button>
+        </div>
+
+        <!-- Demo Mode Notice if Supabase not yet configured -->
+        <div id="demo-mode-notice" style="display: none; font-size: 0.8rem; color: #92400E; background: #FEF3C7; padding: 10px; border-radius: 10px; text-align: left; margin-top: 10px;">
+          💡 <strong>Local Storage Notice:</strong> Saved to browser local storage. To save gifts in the cloud permanently, connect your free Supabase credentials in <code>assets/js/config.js</code>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/audio.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/supabase.js"></script>
+  <script src="assets/js/recipient.js"></script>
+  <script src="assets/js/preview.js"></script>
+</body>
+</html>

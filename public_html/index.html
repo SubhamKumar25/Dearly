@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEARLY — Turn your feelings into a moment.</title>
+  <meta name="description"
+    content="DEARLY is a free, beautiful platform to create personalized interactive digital gifts for people you care about. Love, Apology, Birthday & Proposal stories.">
+
+  <!-- Open Graph / Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="DEARLY Turn your feelings into a moment.">
+  <meta property="og:description"
+    content="Create a personalized interactive digital gift for someone who matters, then send it with one private link.">
+  <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/animations.css">
+</head>
+
+<body class="home-page">
+
+  <!-- Ambient Particles -->
+  <div id="home-ambient-container" class="ambient-particles-container"></div>
+
+  <!-- Site Header / Navbar -->
+  <header class="site-header">
+    <div class="container nav-container">
+      <a href="index.html" class="logo-link" aria-label="DEARLY Home">
+        <img src="assets/images/logo.svg" alt="DEARLY Logo" class="logo-img">
+      </a>
+
+      <!-- Desktop Nav -->
+      <ul class="nav-links">
+        <li><a href="#experiences" class="nav-link">Experiences</a></li>
+        <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+        <li><a href="#faq" class="nav-link">FAQ</a></li>
+      </ul>
+
+      <!-- Nav CTA & Mobile Toggle -->
+      <div class="nav-actions">
+        <a href="#experiences" class="btn btn-primary btn-sm">Create Something ✨</a>
+        <button type="button" class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation menu">
+          ☰
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer -->
+  <div class="mobile-nav-drawer" id="mobile-nav-drawer">
+    <a href="#experiences" class="nav-link">Experiences</a>
+    <a href="#how-it-works" class="nav-link">How It Works</a>
+    <a href="#faq" class="nav-link">FAQ</a>
+    <a href="create.html?type=love" class="btn btn-primary" style="margin-top: 8px;">Create Something ✨</a>
+  </div>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="container hero-content">
+        <div class="badge badge-pulse" style="margin-bottom: 8px;">
+          Little moments, made personal 💌
+        </div>
+        <h1 class="hero-title">
+          Turn your feelings into a <span class="text-gradient">moment</span>.
+        </h1>
+        <p class="hero-description">
+          Create a beautiful little experience for someone who matters — then send it with one private link. No app
+          download, no sign up required.
+        </p>
+        <div class="hero-buttons">
+          <a href="#experiences" class="btn btn-primary btn-lg">Create Something ✨</a>
+          <a href="#how-it-works" class="btn btn-secondary btn-lg">See How It Works</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Category Section -->
+    <section class="categories-section" id="experiences">
+      <div class="container">
+        <div class="section-header">
+          <div class="badge">Choose An Experience</div>
+          <h2 class="section-title">What moment do you want to create?</h2>
+          <p class="section-subtitle">Pick a category to begin crafting your personalized story.</p>
+        </div>
+
+        <div class="categories-grid">
+          <!-- Love Card -->
+          <a href="create.html?type=love" class="category-card type-love">
+            <div class="category-icon-wrapper">💕</div>
+            <div class="category-name">
+              <span>Love</span>
+            </div>
+            <p class="category-desc">Tell someone exactly what they mean to you with gentle notes and photos.</p>
+            <div class="category-cta">
+              Create Love Story <span>→</span>
+            </div>
+          </a>
+
+          <!-- Apology Card -->
+          <a href="create.html?type=apology" class="category-card type-apology">
+            <div class="category-icon-wrapper">🕊️</div>
+            <div class="category-name">
+              <span>Apology</span>
+            </div>
+            <p class="category-desc">Say sorry in a way that feels personal, honest, and thoughtful.</p>
+            <div class="category-cta">
+              Send An Apology <span>→</span>
+            </div>
+          </a>
+
+          <!-- Birthday Card -->
+          <a href="create.html?type=birthday" class="category-card type-birthday">
+            <div class="category-icon-wrapper">🎂</div>
+            <div class="category-name">
+              <span>Birthday</span>
+            </div>
+            <p class="category-desc">Make their birthday more than just a message with confetti & memories.</p>
+            <div class="category-cta">
+              Celebrate Their Day <span>→</span>
+            </div>
+          </a>
+
+          <!-- Proposal Card -->
+          <a href="create.html?type=proposal" class="category-card type-proposal">
+            <div class="category-icon-wrapper">💍</div>
+            <div class="category-name">
+              <span>Proposal</span>
+            </div>
+            <p class="category-desc">Turn one big question into an unforgettable, emotional moment.</p>
+            <div class="category-cta">
+              Pop The Question <span>→</span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works-section" id="how-it-works">
+      <div class="container">
+        <div class="section-header">
+          <div class="badge">Simple & Beautiful</div>
+          <h2 class="section-title">How DEARLY Works</h2>
+          <p class="section-subtitle">Four effortless steps to make someone's whole day.</p>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-num-badge">1</div>
+            <div class="step-icon">🎯</div>
+            <h3 class="step-title">Choose the moment</h3>
+            <p class="step-desc">Pick from Love, Apology, Birthday, or Proposal.</p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num-badge">2</div>
+            <div class="step-icon">✍️</div>
+            <h3 class="step-title">Make it personal</h3>
+            <p class="step-desc">Add names, heartfelt messages, and your favourite photos.</p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num-badge">3</div>
+            <div class="step-icon">👁️</div>
+            <h3 class="step-title">Preview the experience</h3>
+            <p class="step-desc">See the exact animated surprise your recipient will see.</p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-num-badge">4</div>
+            <div class="step-icon">💌</div>
+            <h3 class="step-title">Share the moment</h3>
+            <p class="step-desc">Get a private link to send via WhatsApp, text, or anywhere.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section" id="faq">
+      <div class="container">
+        <div class="section-header">
+          <div class="badge">Got Questions?</div>
+          <h2 class="section-title">Frequently Asked Questions</h2>
+          <p class="section-subtitle">Everything you need to know about DEARLY.</p>
+        </div>
+
+        <div class="faq-list">
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Is DEARLY completely free?</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              Yes, 100% free! There are no paid tiers, no subscriptions, no paywalls, and no hidden charges. Every
+              feature and template is open to all.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Do I or the recipient need an account?</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              No account or password is required. You can build and share gifts instantly. The recipient simply taps the
+              private link and experiences the interactive story in their browser.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>How private is my gift?</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              Each experience is protected with a unique, cryptographically random share ID. Only someone who has the
+              direct link can view it. We never make your memories searchable publicly.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Can I add photos to the experience?</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              Yes! You can add up to 5 photos (JPG, PNG, or WebP). If you prefer a words-only gift, you can skip photos
+              and the recipient experience adapts automatically.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA Banner -->
+    <section class="cta-banner-section">
+      <div class="container">
+        <div class="cta-banner">
+          <h2 class="cta-banner-title">Turn your feelings into a moment today.</h2>
+          <p class="cta-banner-subtitle">
+            It takes just two minutes to make something they will remember forever.
+          </p>
+          <a href="#experiences" class="btn btn-primary btn-lg">Create Something ✨</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <a href="index.html" class="logo-link">
+        <img src="assets/images/logo.svg" alt="DEARLY Logo" class="logo-img">
+      </a>
+      <p class="footer-tagline">Turn your feelings into a moment.</p>
+      <p class="footer-text">
+        © 2026 DEARLY. Crafted with love. Free, private, and made for people who care.
+      </p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="assets/js/audio.js"></script>
+  <script src="assets/js/main.js"></script>
+</body>
+
+</html>

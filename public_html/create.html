@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEARLY — Create Your Gift</title>
+  <meta name="description" content="Personalize your interactive digital gift with heartfelt messages, memories and animated reveals.">
+  <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body class="wizard-page">
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container nav-container">
+      <a href="index.html" class="logo-link" aria-label="DEARLY Home">
+        <img src="assets/images/logo.svg" alt="DEARLY Logo" class="logo-img">
+      </a>
+      <div class="nav-actions">
+        <a href="index.html" class="btn btn-ghost btn-sm">✕ Exit</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Wizard Wrapper -->
+  <main class="wizard-wrapper">
+    <div class="container container-narrow">
+
+      <!-- Wizard Card -->
+      <div class="wizard-card" id="wizard-main-card">
+        <!-- Stepper Header -->
+        <div class="stepper-header">
+          <div class="stepper-category-badge" id="wizard-category-badge">
+            Love Experience 💕
+          </div>
+          <div class="stepper-steps-indicator" id="wizard-steps-indicator">
+            Step 1 of 4
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-track" aria-hidden="true">
+          <div class="progress-fill" id="wizard-progress-fill" style="width: 25%;"></div>
+        </div>
+
+        <!-- Dynamic Step Content Form -->
+        <div id="wizard-card-body">
+          <!-- Populated dynamically by wizard.js -->
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Bar -->
+  <div class="wizard-bottom-bar">
+    <div class="container container-narrow" style="display: flex; justify-content: space-between; align-items: center;">
+      <button type="button" class="btn btn-secondary btn-sm" id="btn-wizard-back" style="visibility: hidden;">
+        ← Back
+      </button>
+      <button type="button" class="btn btn-primary" id="btn-wizard-next">
+        Continue →
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/audio.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/supabase.js"></script>
+  <script src="assets/js/wizard.js"></script>
+</body>
+</html>

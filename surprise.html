@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEARLY — A Special Surprise For You 💌</title>
+  <meta name="description" content="Someone who cares about you made a special interactive digital gift just for you on DEARLY.">
+  <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="A Special Surprise For You 💌">
+  <meta property="og:description" content="Open this link to view an interactive personalized gift made with love on DEARLY.">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/animations.css">
+
+  <style>
+    /* Full-screen Recipient Story Presentation */
+    body.story-mode {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      background-attachment: fixed;
+    }
+    .recipient-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 50;
+      pointer-events: none;
+    }
+    .recipient-header > * {
+      pointer-events: auto;
+    }
+    .story-card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-xl);
+      padding: 40px 28px;
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-lg);
+      max-width: var(--max-width-story);
+      width: 100%;
+      margin: 40px auto 20px;
+      position: relative;
+    }
+    .story-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 14px;
+      border-radius: var(--radius-full);
+      font-size: 0.82rem;
+      font-weight: 700;
+      background: var(--color-primary-light);
+      color: var(--color-primary-hover);
+      margin-bottom: 12px;
+    }
+    .story-progress-bar {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+    .story-progress-pip {
+      width: 24px;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--border-light);
+      transition: background 0.3s ease;
+    }
+    .story-progress-pip.active {
+      background: var(--color-primary);
+    }
+    .story-progress-pip.completed {
+      background: var(--color-primary-light);
+    }
+    .story-quote-box {
+      margin: 28px 0 32px;
+      padding: 20px 16px;
+      position: relative;
+    }
+    .story-quote-mark {
+      font-size: 3rem;
+      line-height: 1;
+      color: var(--color-primary-light);
+      font-family: serif;
+    }
+    .story-quote-mark.end {
+      text-align: right;
+    }
+    .story-quote-text {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.6;
+      font-style: italic;
+    }
+    .story-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .sound-toggle-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: transform var(--transition-fast);
+    }
+    .sound-toggle-btn:hover {
+      transform: scale(1.08);
+    }
+  </style>
+</head>
+<body class="story-mode">
+
+  <!-- Ambient Particles -->
+  <div id="ambient-particles" class="ambient-particles-container"></div>
+
+  <!-- Subtle Top Header -->
+  <header class="recipient-header">
+    <a href="index.html" class="logo-link" style="opacity: 0.85;">
+      <img src="assets/images/logo.svg" alt="DEARLY" style="height: 30px;">
+    </a>
+    <button type="button" class="sound-toggle-btn" id="btn-audio-toggle" title="Toggle gentle sound" aria-label="Toggle audio">
+      🎵
+    </button>
+  </header>
+
+  <!-- Main Story Container -->
+  <main style="width: 100%;">
+    <div id="story-container">
+      <!-- Loading Initial State -->
+      <div class="story-card text-center" style="max-width: 440px; margin: 40px auto; padding: 48px 24px;">
+        <div style="font-size: 3rem; margin-bottom: 16px;" class="animate-heartbeat">💌</div>
+        <h2 style="font-size: 1.35rem; margin-bottom: 8px;">Unwrapping your moment...</h2>
+        <p style="color: var(--text-muted); font-size: 0.92rem;">
+          One second while we prepare your gift.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/audio.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/supabase.js"></script>
+  <script src="assets/js/recipient.js"></script>
+
+  <script>
+    // Recipient Bootloader
+    document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const experienceId = urlParams.get('id') || urlParams.get('public_id') || urlParams.get('demo');
+      const container = document.getElementById('story-container');
+
+      if (!experienceId) {
+        if (container) {
+          container.innerHTML = `
+            <div class="story-card text-center" style="max-width: 460px; margin: 40px auto; padding: 40px 24px;">
+              <span style="font-size: 3rem;">💌</span>
+              <h2 style="font-size: 1.6rem; margin-top: 16px; margin-bottom: 10px;">Missing Gift Link</h2>
+              <p style="color: var(--text-muted); font-size: 0.98rem; margin-bottom: 24px;">
+                It looks like this link is incomplete. Please check the full link sent by your friend or loved one!
+              </p>
+              <a href="index.html" class="btn btn-primary">Go to DEARLY Homepage</a>
+            </div>
+          `;
+        }
+        return;
+      }
+
+      try {
+        // Fetch from Supabase or Local Demo
+        const data = await window.dearlyDB.getExperienceByPublicId(experienceId);
+
+        if (data) {
+          const player = new window.DearlyStoryPlayer({
+            container: container,
+            isPreview: false,
+            data: data
+          });
+          player.init();
+        } else {
+          // If not found, show friendly message
+          const dummyPlayer = new window.DearlyStoryPlayer({ container: container });
+          dummyPlayer.renderNotFound();
+        }
+      } catch (err) {
+        console.error('Error fetching recipient experience:', err);
+        const dummyPlayer = new window.DearlyStoryPlayer({ container: container });
+        dummyPlayer.renderNotFound();
+      }
+
+      // Audio Toggle setup
+      const audioBtn = document.getElementById('btn-audio-toggle');
+      if (audioBtn && window.dearlyAudio) {
+        audioBtn.addEventListener('click', () => {
+          const isMuted = window.dearlyAudio.toggleMute();
+          audioBtn.textContent = isMuted ? '🔇' : '🎵';
+          if (!isMuted) {
+            window.dearlyAudio.playHeartPop();
+            window.dearlyAudio.startAmbient();
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
