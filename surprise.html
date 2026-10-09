@@ -152,16 +152,21 @@
     <a href="index.html" class="logo-link" style="opacity: 0.85;">
       <img src="assets/images/logo.svg" alt="DEARLY" style="height: 30px;">
     </a>
-    <div class="music-player-pill" id="dearly-music-control" role="region" aria-label="Background music controls">
-      <button type="button" class="btn-music-toggle" id="btn-audio-toggle" title="Play peaceful romantic music" aria-label="Toggle romantic music">
-        <span class="music-icon">🎵</span>
-        <span class="music-label">Romantic Music</span>
-        <span class="music-equalizer" aria-hidden="true">
-          <span class="eq-bar"></span>
-          <span class="eq-bar"></span>
-          <span class="eq-bar"></span>
-        </span>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button type="button" class="btn-bookmark-gift" id="btn-bookmark-gift" title="Save this gift to your collection" aria-label="Save this gift" style="border-radius: 999px; font-size: 0.82rem; font-weight: 600; padding: 6px 14px; background: rgba(255, 255, 255, 0.95); border: 1px solid var(--border-light); box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--text-main); transition: transform 0.2s ease;">
+        🔖 <span>Save Gift</span>
       </button>
+      <div class="music-player-pill" id="dearly-music-control" role="region" aria-label="Background music controls">
+        <button type="button" class="btn-music-toggle" id="btn-audio-toggle" title="Play peaceful romantic music" aria-label="Toggle romantic music">
+          <span class="music-icon">🎵</span>
+          <span class="music-label">Romantic Music</span>
+          <span class="music-equalizer" aria-hidden="true">
+            <span class="eq-bar"></span>
+            <span class="eq-bar"></span>
+            <span class="eq-bar"></span>
+          </span>
+        </button>
+      </div>
     </div>
   </header>
 

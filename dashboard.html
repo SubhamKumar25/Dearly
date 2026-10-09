@@ -87,7 +87,11 @@
     <!-- Dashboard Tabs -->
     <div class="dashboard-tabs">
       <a href="javascript:void(0)" class="dashboard-tab-link active" data-tab="surprises">
-        <span>💌 My Surprises</span>
+        <span>💌 My Gifts</span>
+      </a>
+      <a href="javascript:void(0)" class="dashboard-tab-link" data-tab="saved_gifts">
+        <span>🔖 Saved For Me</span>
+        <span class="dashboard-tab-badge" id="tab-saved-badge" style="display: none; background: var(--color-primary-light); color: var(--color-primary);">0</span>
       </a>
       <a href="javascript:void(0)" class="dashboard-tab-link" data-tab="notifications">
         <span>🔔 Notifications & Replies</span>
@@ -101,14 +105,26 @@
       <p style="color: var(--text-muted); font-size: 0.92rem;">Loading your moments and responses...</p>
     </div>
 
-    <!-- TAB 1: Surprises Grid Panel -->
+    <!-- TAB 1: Sender Surprises & Drafts Panel -->
     <div id="panel-surprises" style="display: block;">
+      <div class="gifts-filter-bar" style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary btn-sm gift-filter-btn active" data-filter="all">All (<span id="filter-all-count">0</span>)</button>
+        <button type="button" class="btn btn-secondary btn-sm gift-filter-btn" data-filter="published">Published (<span id="filter-published-count">0</span>)</button>
+        <button type="button" class="btn btn-secondary btn-sm gift-filter-btn" data-filter="draft">Drafts (<span id="filter-drafts-count">0</span>)</button>
+      </div>
       <div id="surprises-list-container">
         <!-- Rendered by dashboard.js -->
       </div>
     </div>
 
-    <!-- TAB 2: Notifications Panel -->
+    <!-- TAB 2: Saved Gifts (Recipient Bookmarks) Panel -->
+    <div id="panel-saved_gifts" style="display: none;">
+      <div id="saved-gifts-list-container">
+        <!-- Rendered by dashboard.js -->
+      </div>
+    </div>
+
+    <!-- TAB 3: Notifications Panel -->
     <div id="panel-notifications" style="display: none;">
       <div id="notifications-list-container">
         <!-- Rendered by dashboard.js -->
@@ -131,7 +147,7 @@
         © 2026 DEARLY. Crafted with love. Free, private, and made for people who care.
       </p>
       <p class="footer-credit">
-        Designed &amp; built by <span class="credit-author">Subham Kumar</span>
+        Designed &amp; built by <a href="https://subham-portfolio-mu.vercel.app/" target="_blank" rel="noopener noreferrer" class="credit-author">Subham Kumar</a>
       </p>
     </div>
   </footer>

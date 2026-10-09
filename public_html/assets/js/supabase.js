@@ -203,10 +203,11 @@ class DearlyDatabaseService {
   /**
    * Save experience into database
    */
-  async saveExperience(experienceData) {
+   async saveExperience(experienceData) {
     await this.ensureReady();
-    const publicId = crypto.randomUUID ? crypto.randomUUID() : this.generateFallbackUuid();
-    const experienceId = crypto.randomUUID ? crypto.randomUUID() : this.generateFallbackUuid();
+    const isExisting = Boolean(experienceData.id && this.isValidUuid(experienceData.id));
+    const experienceId = isExisting ? experienceData.id : (crypto.randomUUID ? crypto.randomUUID() : this.generateFallbackUuid());
+    const publicId = experienceData.public_id || (crypto.randomUUID ? crypto.randomUUID() : this.generateFallbackUuid());
 
     // 1. Process and upload photos to Supabase Storage
     let finalPhotoUrls = [];
@@ -218,12 +219,28 @@ class DearlyDatabaseService {
     let creatorId = null;
     if (this.isReady && this.client) {
       try {
-        const { data: userData } = await this.client.auth.getUser();
-        if (userData?.user?.id) {
-          creatorId = userData.user.id;
+        const { data: sessionData } = await this.client.auth.getSession();
+        if (sessionData?.session?.user?.id) {
+          creatorId = sessionData.session.user.id;
         }
-      } catch (e) {
-        console.warn('Could not read user for creator_id:', e);
+      } catch (e) {}
+
+      if (!creatorId) {
+        try {
+          const { data: userData } = await this.client.auth.getUser();
+          if (userData?.user?.id) {
+            creatorId = userData.user.id;
+          }
+        } catch (e) {
+          console.warn('Could not read user for creator_id:', e);
+        }
+      }
+
+      if (!creatorId) {
+        const fallbackUser = window.dearlyAuth?.getUser?.();
+        if (fallbackUser?.id) {
+          creatorId = fallbackUser.id;
+        }
       }
 
       if (!creatorId) {
@@ -245,6 +262,7 @@ class DearlyDatabaseService {
     }
 
     // 3. Prepare payload matching experiences schema
+    const targetStatus = experienceData.status || 'published';
     const payload = {
       id: experienceId,
       public_id: publicId,
@@ -256,34 +274,54 @@ class DearlyDatabaseService {
       nickname: experienceData.nickname || '',
       reason: experienceData.reason || '',
       messages: experienceData.messages || [],
+      extra_messages: experienceData.extra_messages || [],
       letter: experienceData.letter || '',
       memories: experienceData.memories || [],
       photos: finalPhotoUrls,
       theme: experienceData.theme || experienceData.type || 'default',
-      status: 'published'
+      status: targetStatus
     };
 
-    // 4. Save to Supabase
+    // 4. Save to Supabase (Update existing draft or Insert new)
     if (this.isReady && this.client) {
       try {
-        const { data, error } = await this.client
-          .from('experiences')
-          .insert([payload])
-          .select('id, public_id')
-          .single();
+        let resultData = null;
+        if (isExisting) {
+          const { data, error } = await this.client
+            .from('experiences')
+            .update(payload)
+            .eq('id', experienceId)
+            .eq('creator_id', creatorId)
+            .select('id, public_id, status')
+            .single();
 
-        if (error) {
-          console.error('Supabase insert error:', error);
-          throw new Error(error.message || 'Failed to save experience to database');
+          if (error) {
+            console.error('Supabase update error:', error);
+            throw new Error(error.message || 'Failed to update experience in database');
+          }
+          resultData = data;
+        } else {
+          const { data, error } = await this.client
+            .from('experiences')
+            .insert([payload])
+            .select('id, public_id, status')
+            .single();
+
+          if (error) {
+            console.error('Supabase insert error:', error);
+            throw new Error(error.message || 'Failed to save experience to database');
+          }
+          resultData = data;
         }
 
         // Keep local cache of created experiences for the current user
-        this.trackLocallyCreatedId(data.public_id, data.id);
+        this.trackLocallyCreatedId(resultData.public_id, resultData.id);
 
         return {
           success: true,
-          public_id: data.public_id,
-          id: data.id,
+          public_id: resultData.public_id,
+          id: resultData.id,
+          status: resultData.status || targetStatus,
           isDemo: false
         };
       } catch (dbErr) {
@@ -294,6 +332,7 @@ class DearlyDatabaseService {
           success: true,
           public_id: publicId,
           id: experienceId,
+          status: targetStatus,
           isDemo: true,
           warning: 'Saved locally as backup: ' + dbErr.message
         };
@@ -307,6 +346,7 @@ class DearlyDatabaseService {
       success: true,
       public_id: publicId,
       id: experienceId,
+      status: targetStatus,
       isDemo: true
     };
   }
@@ -357,7 +397,7 @@ class DearlyDatabaseService {
       try {
         const { data, error } = await this.client
           .from('experiences')
-          .select('id, public_id, creator_id, type, sender_name, recipient_name, relationship, nickname, reason, messages, letter, memories, photos, theme, status, created_at')
+          .select('id, public_id, creator_id, type, sender_name, recipient_name, relationship, nickname, reason, messages, extra_messages, letter, memories, photos, theme, status, created_at')
           .eq('public_id', publicId)
           .eq('status', 'published')
           .maybeSingle();
@@ -381,6 +421,42 @@ class DearlyDatabaseService {
       return localData;
     }
 
+    return null;
+  }
+
+  /**
+   * Fetch experience by internal UUID (e.g. for continuing draft editing)
+   */
+  async getExperienceById(experienceId) {
+    if (!experienceId) return null;
+    await this.ensureReady();
+
+    if (this.isReady && this.client) {
+      try {
+        const { data, error } = await this.client
+          .from('experiences')
+          .select('id, public_id, creator_id, type, sender_name, recipient_name, relationship, nickname, reason, messages, extra_messages, letter, memories, photos, theme, status, created_at, updated_at')
+          .eq('id', experienceId)
+          .single();
+
+        if (!error && data) {
+          data.photos = this.normalizePhotosList(data.photos);
+          return data;
+        }
+      } catch (err) {
+        console.warn('Supabase getExperienceById failed, checking local store:', err);
+      }
+    }
+
+    // Local fallback: search by id in demoStorage
+    const store = JSON.parse(localStorage.getItem(this.demoStorageKey) || '{}');
+    for (const key of Object.keys(store)) {
+      if (store[key].id === experienceId || store[key].public_id === experienceId) {
+        const localData = { ...store[key] };
+        localData.photos = this.normalizePhotosList(localData.photos);
+        return localData;
+      }
+    }
     return null;
   }
 
@@ -559,12 +635,21 @@ class DearlyDatabaseService {
     let currentAuthId = null;
     if (this.isReady && this.client) {
       try {
-        const { data: userData } = await this.client.auth.getUser();
-        currentAuthId = userData?.user?.id;
+        const { data: sessionData } = await this.client.auth.getSession();
+        currentAuthId = sessionData?.session?.user?.id;
       } catch (e) {}
-    } else {
-      const demoUser = window.dearlyAuth?.getUser?.();
-      currentAuthId = demoUser?.id;
+
+      if (!currentAuthId) {
+        try {
+          const { data: userData } = await this.client.auth.getUser();
+          currentAuthId = userData?.user?.id;
+        } catch (e) {}
+      }
+    }
+
+    if (!currentAuthId) {
+      const fallbackUser = window.dearlyAuth?.getUser?.();
+      currentAuthId = fallbackUser?.id;
     }
 
     if (!currentAuthId || currentAuthId !== userId) {
@@ -577,7 +662,7 @@ class DearlyDatabaseService {
         // Query experiences by creator_id
         const { data: experiences, error } = await this.client
           .from('experiences')
-          .select('id, public_id, creator_id, type, sender_name, recipient_name, relationship, nickname, reason, messages, letter, memories, photos, theme, status, created_at')
+          .select('id, public_id, creator_id, type, sender_name, recipient_name, relationship, nickname, reason, messages, extra_messages, letter, memories, photos, theme, status, created_at, updated_at')
           .eq('creator_id', userId)
           .order('created_at', { ascending: false });
 
@@ -628,6 +713,195 @@ class DearlyDatabaseService {
   }
 
   /**
+   * Get all gifts saved/bookmarked by this recipient
+   */
+  async getUserSavedGifts(userId) {
+    await this.ensureReady();
+    if (!userId) return [];
+
+    let savedList = [];
+
+    if (this.isReady && this.client) {
+      try {
+        const { data, error } = await this.client
+          .from('saved_gifts')
+          .select(`
+            id, public_id, experience_id, created_at,
+            experiences (id, public_id, type, sender_name, recipient_name, relationship, theme, photos, status, created_at)
+          `)
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          savedList = data.map(item => ({
+            id: item.id,
+            public_id: item.public_id,
+            experience_id: item.experience_id,
+            saved_at: item.created_at,
+            experience: item.experiences ? {
+              ...item.experiences,
+              photos: this.normalizePhotosList(item.experiences.photos)
+            } : null
+          }));
+        }
+      } catch (err) {
+        console.warn('Error fetching saved_gifts from Supabase:', err);
+      }
+    }
+
+    // Merge with local account bookmarks or device bookmarks
+    const acctKey = `dearly_saved_gifts_${userId}`;
+    const localSaved = JSON.parse(localStorage.getItem(acctKey) || '[]');
+    localSaved.forEach(localItem => {
+      if (!savedList.some(s => s.public_id === localItem.public_id || (s.experience_id && s.experience_id === localItem.experience_id))) {
+        savedList.push(localItem);
+      }
+    });
+
+    return savedList;
+  }
+
+  /**
+   * Recipient saves a gift to their account or local bookmarks
+   */
+  async saveRecipientGift(publicId, experienceId) {
+    await this.ensureReady();
+    if (!publicId && !experienceId) {
+      return { success: false, error: 'Missing gift identifier.' };
+    }
+
+    const user = window.dearlyAuth?.getUser?.();
+
+    // 1. If authenticated, save to Supabase saved_gifts table
+    if (this.isReady && this.client && user) {
+      try {
+        let targetExpId = experienceId;
+        if (!targetExpId) {
+          const exp = await this.getExperienceByPublicId(publicId);
+          if (exp) targetExpId = exp.id;
+        }
+
+        if (targetExpId) {
+          const { error } = await this.client
+            .from('saved_gifts')
+            .upsert([
+              {
+                user_id: user.id,
+                experience_id: targetExpId,
+                public_id: publicId
+              }
+            ], { onConflict: 'user_id,experience_id' });
+
+          if (error) throw error;
+        }
+
+        // Cache in user account localStorage
+        const acctKey = `dearly_saved_gifts_${user.id}`;
+        const existing = JSON.parse(localStorage.getItem(acctKey) || '[]');
+        if (!existing.some(g => g.public_id === publicId || (targetExpId && g.experience_id === targetExpId))) {
+          existing.unshift({
+            public_id: publicId,
+            experience_id: targetExpId,
+            saved_at: new Date().toISOString()
+          });
+          localStorage.setItem(acctKey, JSON.stringify(existing));
+        }
+
+        return { success: true, isLocal: false };
+      } catch (err) {
+        console.warn('Saving to Supabase saved_gifts failed, saving locally:', err);
+      }
+    }
+
+    // 2. Local Bookmark fallback (for device storage or unauthenticated users)
+    const localStoreKey = 'dearly_bookmarked_gifts';
+    const bookmarks = JSON.parse(localStorage.getItem(localStoreKey) || '[]');
+    if (!bookmarks.some(b => b.public_id === publicId || (experienceId && b.experience_id === experienceId))) {
+      bookmarks.unshift({
+        public_id: publicId,
+        experience_id: experienceId,
+        saved_at: new Date().toISOString()
+      });
+      localStorage.setItem(localStoreKey, JSON.stringify(bookmarks));
+    }
+
+    return { success: true, isLocal: true };
+  }
+
+  /**
+   * Remove a gift from the recipient's saved list
+   * (Does NOT delete the sender's original experience)
+   */
+  async removeSavedGift(giftIdOrPublicId) {
+    await this.ensureReady();
+    const user = window.dearlyAuth?.getUser?.();
+
+    if (this.isReady && this.client && user) {
+      try {
+        await this.client
+          .from('saved_gifts')
+          .delete()
+          .eq('user_id', user.id)
+          .or(`id.eq.${giftIdOrPublicId},experience_id.eq.${giftIdOrPublicId},public_id.eq.${giftIdOrPublicId}`);
+
+        const acctKey = `dearly_saved_gifts_${user.id}`;
+        const existing = JSON.parse(localStorage.getItem(acctKey) || '[]');
+        const updated = existing.filter(g => g.id !== giftIdOrPublicId && g.public_id !== giftIdOrPublicId && g.experience_id !== giftIdOrPublicId);
+        localStorage.setItem(acctKey, JSON.stringify(updated));
+      } catch (err) {
+        console.warn('Error removing from Supabase saved_gifts:', err);
+      }
+    }
+
+    // Also remove from local bookmarks
+    const localStoreKey = 'dearly_bookmarked_gifts';
+    const bookmarks = JSON.parse(localStorage.getItem(localStoreKey) || '[]');
+    const updatedBookmarks = bookmarks.filter(b => b.id !== giftIdOrPublicId && b.public_id !== giftIdOrPublicId && b.experience_id !== giftIdOrPublicId);
+    localStorage.setItem(localStoreKey, JSON.stringify(updatedBookmarks));
+
+    return { success: true };
+  }
+
+  /**
+   * Check if a gift is currently saved by recipient
+   */
+  async isGiftSaved(publicId, experienceId) {
+    const user = window.dearlyAuth?.getUser?.();
+    if (!publicId && !experienceId) return false;
+
+    // Check device local bookmarks first
+    const localStoreKey = 'dearly_bookmarked_gifts';
+    const bookmarks = JSON.parse(localStorage.getItem(localStoreKey) || '[]');
+    if (bookmarks.some(b => (publicId && b.public_id === publicId) || (experienceId && b.experience_id === experienceId))) {
+      return true;
+    }
+
+    if (user) {
+      const acctKey = `dearly_saved_gifts_${user.id}`;
+      const acctSaved = JSON.parse(localStorage.getItem(acctKey) || '[]');
+      if (acctSaved.some(b => (publicId && b.public_id === publicId) || (experienceId && b.experience_id === experienceId))) {
+        return true;
+      }
+
+      if (this.isReady && this.client) {
+        try {
+          const { data } = await this.client
+            .from('saved_gifts')
+            .select('id')
+            .eq('user_id', user.id)
+            .or(`public_id.eq.${publicId},experience_id.eq.${experienceId}`)
+            .limit(1);
+
+          return Boolean(data && data.length > 0);
+        } catch (e) {
+          return false;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * Get notifications for an authenticated sender
    */
   async getUserNotifications(userId) {
@@ -638,12 +912,21 @@ class DearlyDatabaseService {
     let currentAuthId = null;
     if (this.isReady && this.client) {
       try {
-        const { data: userData } = await this.client.auth.getUser();
-        currentAuthId = userData?.user?.id;
+        const { data: sessionData } = await this.client.auth.getSession();
+        currentAuthId = sessionData?.session?.user?.id;
       } catch (e) {}
-    } else {
-      const demoUser = window.dearlyAuth?.getUser?.();
-      currentAuthId = demoUser?.id;
+
+      if (!currentAuthId) {
+        try {
+          const { data: userData } = await this.client.auth.getUser();
+          currentAuthId = userData?.user?.id;
+        } catch (e) {}
+      }
+    }
+
+    if (!currentAuthId) {
+      const fallbackUser = window.dearlyAuth?.getUser?.();
+      currentAuthId = fallbackUser?.id;
     }
 
     if (!currentAuthId || currentAuthId !== userId) {

@@ -134,7 +134,17 @@ class DearlyPreviewController {
     const backButtons = document.querySelectorAll('#btn-preview-back, #btn-preview-back-top, .btn-preview-back');
     backButtons.forEach(btn => {
       btn.addEventListener('click', () => {
-        window.location.href = `create.html?type=${this.previewData?.type || 'love'}`;
+        const draftId = this.previewData?.draft_id || this.previewData?.id;
+        let returnUrl = `create.html?type=${this.previewData?.type || 'love'}`;
+        if (draftId) returnUrl += `&draft_id=${encodeURIComponent(draftId)}`;
+        window.location.href = returnUrl;
+      });
+    });
+
+    const draftButtons = document.querySelectorAll('#btn-preview-save-draft, #btn-preview-save-draft-top');
+    draftButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.saveDraft();
       });
     });
 
@@ -149,8 +159,75 @@ class DearlyPreviewController {
     this.bindModalEvents();
   }
 
+  countWords(text) {
+    if (!text || typeof text !== 'string') return 0;
+    const trimmed = text.trim();
+    if (!trimmed) return 0;
+    return trimmed.split(/\s+/).filter(Boolean).length;
+  }
+
+  async saveDraft() {
+    if (window.dearlyAuth) {
+      await window.dearlyAuth.init();
+      const user = window.dearlyAuth.getUser();
+      if (!user) {
+        alert('Please log in or create an account to save drafts!');
+        const returnUrl = window.location.pathname.split('/').pop() + window.location.search;
+        window.location.href = `auth.html?redirect=${encodeURIComponent(returnUrl || 'preview.html')}`;
+        return;
+      }
+    }
+
+    if (this.previewData?.letter) {
+      const words = this.countWords(this.previewData.letter);
+      if (words > 250) {
+        alert(`Cannot save draft: Letter has ${words} words (max 250 words allowed). Please return to edit and shorten it.`);
+        return;
+      }
+    }
+
+    const draftBtns = document.querySelectorAll('#btn-preview-save-draft, #btn-preview-save-draft-top');
+    draftBtns.forEach(b => { b.disabled = true; b.textContent = 'Saving... ⏳'; });
+
+    try {
+      const draftPayload = {
+        ...this.previewData,
+        status: 'draft'
+      };
+      const result = await window.dearlyDB.saveExperience(draftPayload);
+      if (result && result.success) {
+        this.previewData.id = result.id || this.previewData.id;
+        this.previewData.draft_id = result.id || this.previewData.draft_id;
+        sessionStorage.setItem('dearly_preview_data', JSON.stringify(this.previewData));
+        if (window.DearlyStorage) {
+          await window.DearlyStorage.set('dearly_preview_data', this.previewData);
+        }
+        draftBtns.forEach(b => { b.disabled = false; b.textContent = '✅ Draft Saved'; });
+        alert('Draft saved successfully! You can view it and continue editing in your Dashboard.');
+        setTimeout(() => {
+          draftBtns.forEach(b => { b.disabled = false; b.textContent = '💾 Save Draft'; });
+        }, 2500);
+      } else {
+        throw new Error(result?.error || 'Could not save draft');
+      }
+    } catch (err) {
+      console.error('Error saving draft:', err);
+      draftBtns.forEach(b => { b.disabled = false; b.textContent = '💾 Save Draft'; });
+      alert('Error saving draft: ' + (err.message || 'Please try again.'));
+    }
+  }
+
   async publishExperience() {
     if (this.isPublishing) return;
+
+    // Check letter 250-word limit
+    if (this.previewData?.letter) {
+      const words = this.countWords(this.previewData.letter);
+      if (words > 250) {
+        alert(`Cannot publish gift: Your letter has ${words} words, which exceeds the 250-word limit. Please return to edit and shorten your letter.`);
+        return;
+      }
+    }
 
     // Strictly require authentication before publishing
     if (window.dearlyAuth) {
@@ -184,8 +261,12 @@ class DearlyPreviewController {
     }
 
     try {
-      // Call Supabase / DB service
-      const result = await window.dearlyDB.saveExperience(this.previewData);
+      // Call Supabase / DB service with published status
+      const publishPayload = {
+        ...this.previewData,
+        status: 'published'
+      };
+      const result = await window.dearlyDB.saveExperience(publishPayload);
 
       if (result && result.success) {
         this.publicId = result.public_id || result.id;

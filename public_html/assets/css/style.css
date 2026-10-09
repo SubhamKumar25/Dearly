@@ -738,6 +738,13 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-primary);
   font-weight: 600;
   letter-spacing: 0.2px;
+  text-decoration: none;
+  transition: color var(--transition-fast), text-decoration var(--transition-fast);
+}
+
+.footer-credit .credit-author:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
 }
 
 /* --- Forms & Wizard UI Elements --- */
@@ -2298,5 +2305,81 @@ body.nav-open {
     right: 16px;
   }
 }
+
+/* Word Counter and Warning Styles */
+.char-counter.word-counter {
+  transition: color 0.2s ease;
+}
+
+/* Extra Personal Messages Section */
+.extra-messages-section {
+  animation: fadeIn 0.3s ease;
+}
+
+.extra-message-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.extra-message-card:focus-within {
+  border-color: var(--color-primary-light);
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.08);
+}
+
+.btn-extra-msg-move {
+  transition: all 0.15s ease;
+}
+
+.btn-extra-msg-move:hover:not(:disabled) {
+  background: var(--color-primary-subtle, #FFF1F2) !important;
+  color: var(--color-primary);
+  border-color: var(--color-primary) !important;
+}
+
+/* Story Extra Note Screen */
+.story-card-extra-note {
+  border-top: 3px solid var(--color-primary);
+}
+
+/* Bookmark & Saved Gifts UI */
+.btn-bookmark-gift {
+  transition: all 0.2s ease;
+}
+
+.btn-bookmark-gift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-bookmark-gift.saved {
+  background: #FFE4E6 !important;
+  border-color: #FB7185 !important;
+  color: #E11D48 !important;
+}
+
+/* Dashboard Filter Bar */
+.gifts-filter-bar .gift-filter-btn {
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border-light);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.gifts-filter-bar .gift-filter-btn.active {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.25);
+}
+
+.gifts-filter-bar .gift-filter-btn:hover:not(.active) {
+  background: var(--bg-surface-soft);
+  color: var(--text-main);
+}
+
 
 

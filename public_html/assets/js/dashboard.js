@@ -7,8 +7,10 @@ class DearlyDashboardController {
   constructor() {
     this.user = null;
     this.experiences = [];
+    this.savedGifts = [];
     this.notifications = [];
     this.activeTab = 'surprises';
+    this.activeFilter = 'all'; // 'all', 'published', 'draft'
     this.isLoading = true;
   }
 
@@ -45,9 +47,13 @@ class DearlyDashboardController {
       greetingEl.textContent = `Welcome back, ${window.dearlyAuth.getUserName()} 💕`;
     }
 
-    // 3. Tab navigation handling (supports #notifications hash)
+    // 3. Tab navigation handling (supports #saved_gifts and #notifications hash)
     this.bindTabs();
-    if (window.location.hash === '#notifications') {
+    this.bindFilters();
+
+    if (window.location.hash === '#saved_gifts') {
+      this.switchTab('saved_gifts');
+    } else if (window.location.hash === '#notifications') {
       this.switchTab('notifications');
     }
 
@@ -69,6 +75,18 @@ class DearlyDashboardController {
     });
   }
 
+  bindFilters() {
+    const filterBtns = document.querySelectorAll('.gift-filter-btn');
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.activeFilter = btn.getAttribute('data-filter') || 'all';
+        this.renderSurprises();
+      });
+    });
+  }
+
   switchTab(tabName) {
     this.activeTab = tabName;
     document.querySelectorAll('.dashboard-tab-link').forEach(t => {
@@ -76,15 +94,17 @@ class DearlyDashboardController {
     });
 
     const surprisesPanel = document.getElementById('panel-surprises');
+    const savedGiftsPanel = document.getElementById('panel-saved_gifts');
     const notificationsPanel = document.getElementById('panel-notifications');
 
-    if (surprisesPanel && notificationsPanel) {
-      surprisesPanel.style.display = tabName === 'surprises' ? 'block' : 'none';
-      notificationsPanel.style.display = tabName === 'notifications' ? 'block' : 'none';
-    }
+    if (surprisesPanel) surprisesPanel.style.display = tabName === 'surprises' ? 'block' : 'none';
+    if (savedGiftsPanel) savedGiftsPanel.style.display = tabName === 'saved_gifts' ? 'block' : 'none';
+    if (notificationsPanel) notificationsPanel.style.display = tabName === 'notifications' ? 'block' : 'none';
 
     if (tabName === 'notifications') {
       window.location.hash = '#notifications';
+    } else if (tabName === 'saved_gifts') {
+      window.location.hash = '#saved_gifts';
     } else {
       history.replaceState(null, null, 'dashboard.html');
     }
@@ -94,16 +114,19 @@ class DearlyDashboardController {
     this.setLoading(true);
 
     try {
-      const [experiences, notifications] = await Promise.all([
+      const [experiences, savedGifts, notifications] = await Promise.all([
         window.dearlyDB.getUserExperiences(this.user.id),
+        window.dearlyDB.getUserSavedGifts(this.user.id),
         window.dearlyDB.getUserNotifications(this.user.id)
       ]);
 
       this.experiences = experiences || [];
+      this.savedGifts = savedGifts || [];
       this.notifications = notifications || [];
 
       this.updateStats();
       this.renderSurprises();
+      this.renderSavedGifts();
       this.renderNotifications();
     } catch (err) {
       console.error('Error loading dashboard data:', err);
@@ -118,6 +141,7 @@ class DearlyDashboardController {
     const elRepliesCount = document.getElementById('stat-replies-count');
     const elNotifsCount = document.getElementById('stat-notifs-count');
     const tabNotifsBadge = document.getElementById('tab-notifs-badge');
+    const tabSavedBadge = document.getElementById('tab-saved-badge');
 
     // Total replies received across all experiences
     let totalReplies = 0;
@@ -140,20 +164,43 @@ class DearlyDashboardController {
       }
     }
 
+    if (tabSavedBadge) {
+      if (this.savedGifts.length > 0) {
+        tabSavedBadge.style.display = 'inline-block';
+        tabSavedBadge.textContent = this.savedGifts.length;
+      } else {
+        tabSavedBadge.style.display = 'none';
+      }
+    }
+
     // Also update global auth badge
-    window.dearlyAuth.unreadNotificationsCount = unreadCount;
-    window.dearlyAuth.updateBadgeElements();
+    if (window.dearlyAuth) {
+      window.dearlyAuth.unreadNotificationsCount = unreadCount;
+      window.dearlyAuth.updateBadgeElements();
+    }
   }
 
   renderSurprises() {
     const container = document.getElementById('surprises-list-container');
     if (!container) return;
 
+    // Update filter counters
+    const totalCount = this.experiences.length;
+    const publishedCount = this.experiences.filter(e => e.status !== 'draft').length;
+    const draftsCount = this.experiences.filter(e => e.status === 'draft').length;
+
+    const elAll = document.getElementById('filter-all-count');
+    const elPub = document.getElementById('filter-published-count');
+    const elDraft = document.getElementById('filter-drafts-count');
+    if (elAll) elAll.textContent = totalCount;
+    if (elPub) elPub.textContent = publishedCount;
+    if (elDraft) elDraft.textContent = draftsCount;
+
     if (this.experiences.length === 0) {
       container.innerHTML = `
         <div class="empty-state-box">
           <span style="font-size: 3rem;">💌</span>
-          <h3 style="font-size: 1.25rem; margin-top: 14px; margin-bottom: 8px;">No surprises created yet</h3>
+          <h3 style="font-size: 1.25rem; margin-top: 14px; margin-bottom: 8px;">No gifts created yet</h3>
           <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 22px;">
             Create your very first personalized surprise and share it with someone you care about!
           </p>
@@ -163,21 +210,87 @@ class DearlyDashboardController {
       return;
     }
 
+    // Apply active filter
+    let filteredList = this.experiences;
+    if (this.activeFilter === 'published') {
+      filteredList = this.experiences.filter(e => e.status !== 'draft');
+    } else if (this.activeFilter === 'draft') {
+      filteredList = this.experiences.filter(e => e.status === 'draft');
+    }
+
+    if (filteredList.length === 0) {
+      const filterLabel = this.activeFilter === 'draft' ? 'drafts' : 'published gifts';
+      container.innerHTML = `
+        <div class="empty-state-box" style="padding: 32px 16px;">
+          <span style="font-size: 2.2rem;">📂</span>
+          <h4 style="margin: 12px 0 6px 0; font-size: 1.1rem;">No ${filterLabel} found</h4>
+          <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 16px;">
+            You don't have any items in this filter view right now.
+          </p>
+          <a href="create.html?type=love" class="btn btn-secondary btn-sm">+ Create New Gift</a>
+        </div>
+      `;
+      return;
+    }
+
     const baseOrigin = window.location.origin;
     const base = baseOrigin.endsWith('/') ? baseOrigin.slice(0, -1) : baseOrigin;
 
     let html = '<div class="surprises-grid">';
-    this.experiences.forEach(exp => {
+    filteredList.forEach(exp => {
+      const isDraft = exp.status === 'draft';
       const shareUrl = `${base}/surprise.html?id=${exp.public_id}`;
       const repliesCount = (exp.responses || []).length;
-      const formattedDate = exp.created_at ? new Date(exp.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently';
+      const formattedDate = exp.updated_at || exp.created_at ? new Date(exp.updated_at || exp.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently';
       const category = exp.type || 'love';
+
+      const statusBadge = isDraft
+        ? `<span class="surprise-status-pill" style="background: #FEF3C7; color: #92400E; font-size: 0.76rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;">Draft ✏️</span>`
+        : `<span class="surprise-status-pill" style="background: #ECFDF5; color: #065F46; font-size: 0.76rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;">Published ✨</span>`;
+
+      let actionsHtml = '';
+      if (isDraft) {
+        actionsHtml = `
+          <a href="create.html?type=${encodeURIComponent(category)}&draft_id=${encodeURIComponent(exp.id)}" class="btn btn-primary btn-sm" title="Continue Editing">
+            ✏️ Continue Editing
+          </a>
+          <button type="button" class="btn btn-secondary btn-sm btn-preview-draft" data-exp-id="${exp.id}" title="Preview Draft Experience">
+            👁️ Preview
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm btn-delete-surprise" data-exp-id="${exp.id}" data-name="${this.escapeHtml(exp.recipient_name)}" data-is-draft="true" style="color: #EF4444; margin-left: auto;" title="Delete Draft">
+            🗑️
+          </button>
+        `;
+      } else {
+        actionsHtml = `
+          <button type="button" class="btn btn-secondary btn-sm btn-copy-share-link" data-url="${this.escapeHtml(shareUrl)}" title="Copy Share Link">
+            🔗 Copy Link
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm btn-reshare-link" data-url="${this.escapeHtml(shareUrl)}" data-recipient="${this.escapeHtml(exp.recipient_name || 'Someone special')}" title="Re-share Gift Link">
+            📤 Re-share
+          </button>
+          <a href="${this.escapeHtml(shareUrl)}" target="_blank" class="btn btn-secondary btn-sm" title="View Published Story">
+            👁️ View Story
+          </a>
+          ${repliesCount > 0 ? `
+            <button type="button" class="btn btn-primary btn-sm btn-view-exp-replies" data-exp-id="${exp.id}" title="View received replies">
+              💬 Replies (${repliesCount})
+            </button>
+          ` : ''}
+          <button type="button" class="btn btn-ghost btn-sm btn-delete-surprise" data-exp-id="${exp.id}" data-name="${this.escapeHtml(exp.recipient_name)}" data-is-draft="false" style="color: #EF4444; margin-left: auto;" title="Delete Gift">
+            🗑️
+          </button>
+        `;
+      }
 
       html += `
         <div class="surprise-card" id="card-surprise-${exp.id}">
           <div class="surprise-card-header">
             <span class="surprise-category-pill pill-${category}">${category} Gift</span>
-            <span class="surprise-card-date">${formattedDate}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              ${statusBadge}
+              <span class="surprise-card-date">${formattedDate}</span>
+            </div>
           </div>
 
           <div class="surprise-card-title">
@@ -187,26 +300,20 @@ class DearlyDashboardController {
             From ${this.escapeHtml(exp.sender_name || 'You')}
           </p>
 
-          <div class="surprise-card-replies-badge ${repliesCount > 0 ? 'has-replies' : ''}">
-            <span>${repliesCount > 0 ? '💌' : '⏳'}</span>
-            <span>${repliesCount > 0 ? `${repliesCount} ${repliesCount === 1 ? 'Response' : 'Responses'} Received` : 'Awaiting Response'}</span>
-          </div>
+          ${!isDraft ? `
+            <div class="surprise-card-replies-badge ${repliesCount > 0 ? 'has-replies' : ''}">
+              <span>${repliesCount > 0 ? '💌' : '⏳'}</span>
+              <span>${repliesCount > 0 ? `${repliesCount} ${repliesCount === 1 ? 'Response' : 'Responses'} Received` : 'Awaiting Response'}</span>
+            </div>
+          ` : `
+            <div class="surprise-card-replies-badge" style="background: #FFFBEB; color: #92400E; border: 1px dashed #FCD34D;">
+              <span>💾</span>
+              <span>Unpublished Draft • Ready to resume</span>
+            </div>
+          `}
 
           <div class="surprise-card-actions">
-            <button type="button" class="btn btn-secondary btn-sm btn-copy-share-link" data-url="${this.escapeHtml(shareUrl)}" title="Copy Share Link">
-              🔗 Copy Link
-            </button>
-            <a href="${this.escapeHtml(shareUrl)}" target="_blank" class="btn btn-secondary btn-sm" title="Preview Surprise">
-              👁️ View Story
-            </a>
-            ${repliesCount > 0 ? `
-              <button type="button" class="btn btn-primary btn-sm btn-view-exp-replies" data-exp-id="${exp.id}" title="View received replies">
-                💬 View Replies (${repliesCount})
-              </button>
-            ` : ''}
-            <button type="button" class="btn btn-ghost btn-sm btn-delete-surprise" data-exp-id="${exp.id}" data-name="${this.escapeHtml(exp.recipient_name)}" style="color: #EF4444; margin-left: auto;" title="Delete Surprise">
-              🗑️
-            </button>
+            ${actionsHtml}
           </div>
         </div>
       `;
@@ -234,6 +341,63 @@ class DearlyDashboardController {
       });
     });
 
+    // 1b. Re-share link button (native share sheet with clipboard fallback)
+    document.querySelectorAll('.btn-reshare-link').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const url = btn.getAttribute('data-url');
+        const recipient = btn.getAttribute('data-recipient') || 'someone special';
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: `A DEARLY surprise for ${recipient} 💌`,
+              text: `I made an interactive surprise for you on DEARLY!`,
+              url: url
+            });
+            this.showToast('Shared successfully! 💌');
+            return;
+          } catch (e) {
+            // User cancelled or share unsupported
+          }
+        }
+        // Fallback
+        try {
+          await navigator.clipboard.writeText(url);
+          this.showToast('Original gift link copied to clipboard! 💌');
+        } catch (e) {
+          prompt('Copy this link to re-share:', url);
+        }
+      });
+    });
+
+    // 1c. Preview Draft button
+    document.querySelectorAll('.btn-preview-draft').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const expId = btn.getAttribute('data-exp-id');
+        const exp = this.experiences.find(e => e.id === expId);
+        if (exp) {
+          const previewData = {
+            id: exp.id,
+            draft_id: exp.id,
+            type: exp.type,
+            sender_name: exp.sender_name,
+            recipient_name: exp.recipient_name,
+            relationship: exp.relationship,
+            nickname: exp.nickname,
+            reason: exp.reason,
+            messages: exp.messages,
+            extra_messages: exp.extra_messages,
+            letter: exp.letter,
+            photos: exp.photos
+          };
+          sessionStorage.setItem('dearly_preview_data', JSON.stringify(previewData));
+          if (window.DearlyStorage) {
+            await window.DearlyStorage.set('dearly_preview_data', previewData);
+          }
+          window.location.href = `preview.html?type=${encodeURIComponent(exp.type || 'love')}`;
+        }
+      });
+    });
+
     // 2. View replies button
     document.querySelectorAll('.btn-view-exp-replies').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -245,12 +409,123 @@ class DearlyDashboardController {
       });
     });
 
-    // 3. Delete experience button
+    // 3. Delete experience or draft button
     document.querySelectorAll('.btn-delete-surprise').forEach(btn => {
       btn.addEventListener('click', () => {
         const expId = btn.getAttribute('data-exp-id');
         const name = btn.getAttribute('data-name') || 'this surprise';
-        this.confirmDeleteExperience(expId, name);
+        const isDraft = btn.getAttribute('data-is-draft') === 'true';
+        this.confirmDeleteExperience(expId, name, isDraft);
+      });
+    });
+  }
+
+  renderSavedGifts() {
+    const container = document.getElementById('saved-gifts-list-container');
+    if (!container) return;
+
+    if (this.savedGifts.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state-box">
+          <span style="font-size: 3rem;">🔖</span>
+          <h3 style="font-size: 1.25rem; margin-top: 14px; margin-bottom: 8px;">No saved gifts yet</h3>
+          <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 22px;">
+            When someone sends you a DEARLY surprise, tap "Save Gift" on the gift page to keep it in your personal collection!
+          </p>
+        </div>
+      `;
+      return;
+    }
+
+    const baseOrigin = window.location.origin;
+    const base = baseOrigin.endsWith('/') ? baseOrigin.slice(0, -1) : baseOrigin;
+
+    let html = '<div class="surprises-grid">';
+    this.savedGifts.forEach(gift => {
+      const shareUrl = `${base}/surprise.html?id=${gift.public_id}`;
+      const category = gift.type || 'love';
+      const formattedDate = gift.created_at ? new Date(gift.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently saved';
+
+      html += `
+        <div class="surprise-card" id="card-saved-gift-${gift.id}">
+          <div class="surprise-card-header">
+            <span class="surprise-category-pill pill-${category}">${category} Gift</span>
+            <span class="surprise-card-date">${formattedDate}</span>
+          </div>
+
+          <div class="surprise-card-title">
+            From ${this.escapeHtml(gift.sender_name || 'Someone Special')} 💕
+          </div>
+          <p style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 12px;">
+            For ${this.escapeHtml(gift.recipient_name || 'You')}
+          </p>
+
+          <div class="surprise-card-actions" style="margin-top: 16px;">
+            <a href="${this.escapeHtml(shareUrl)}" target="_blank" class="btn btn-primary btn-sm" title="Open and replay gift">
+              💌 Open Gift ↗
+            </a>
+            <button type="button" class="btn btn-secondary btn-sm btn-copy-share-link" data-url="${this.escapeHtml(shareUrl)}" title="Copy Link">
+              🔗 Copy Link
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm btn-remove-saved-gift" data-gift-id="${gift.id}" data-public-id="${gift.public_id}" style="color: #EF4444; margin-left: auto;" title="Remove from Saved Gifts">
+              🗑️ Remove
+            </button>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+
+    container.innerHTML = html;
+    this.bindSavedGiftsEvents();
+  }
+
+  bindSavedGiftsEvents() {
+    // 1. Copy link button
+    document.querySelectorAll('#saved-gifts-list-container .btn-copy-share-link').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const url = btn.getAttribute('data-url');
+        try {
+          await navigator.clipboard.writeText(url);
+          const original = btn.innerHTML;
+          btn.innerHTML = '✅ Copied!';
+          this.showToast('Gift link copied to clipboard! 💌');
+          setTimeout(() => (btn.innerHTML = original), 2200);
+        } catch (e) {
+          prompt('Copy this link:', url);
+        }
+      });
+    });
+
+    // 2. Remove saved gift button
+    document.querySelectorAll('.btn-remove-saved-gift').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const giftId = btn.getAttribute('data-gift-id');
+        const publicId = btn.getAttribute('data-public-id');
+        const confirmed = confirm('Remove this gift from your saved collection? (The sender\'s original gift will remain intact)');
+        if (!confirmed) return;
+
+        btn.disabled = true;
+        btn.textContent = 'Removing... ⏳';
+
+        try {
+          const res = await window.dearlyDB.removeSavedGift(giftId || publicId);
+          if (res && res.success) {
+            this.savedGifts = this.savedGifts.filter(g => g.id !== giftId && g.public_id !== publicId);
+            this.updateStats();
+            this.renderSavedGifts();
+            this.showToast('Gift removed from your collection.');
+          } else {
+            alert('Could not remove saved gift: ' + (res?.error || 'Unknown error'));
+            btn.disabled = false;
+            btn.textContent = '🗑️ Remove';
+          }
+        } catch (err) {
+          console.error('Error removing saved gift:', err);
+          alert('Error removing saved gift: ' + err.message);
+          btn.disabled = false;
+          btn.textContent = '🗑️ Remove';
+        }
       });
     });
   }
@@ -425,27 +700,34 @@ class DearlyDashboardController {
     });
   }
 
-  confirmDeleteExperience(experienceId, recipientName) {
-    if (!confirm(`Are you sure you want to delete the surprise for ${recipientName}? This cannot be undone.`)) {
+  confirmDeleteExperience(experienceId, recipientName, isDraft = false) {
+    let msg = '';
+    if (isDraft) {
+      msg = `Are you sure you want to delete this unfinished draft${recipientName ? ' for ' + recipientName : ''}? This cannot be undone.`;
+    } else {
+      msg = `Are you sure you want to permanently delete this published gift${recipientName ? ' for ' + recipientName : ''}? The shared recipient link will no longer work.`;
+    }
+
+    if (!confirm(msg)) {
       return;
     }
 
-    this.deleteExperience(experienceId);
+    this.deleteExperience(experienceId, isDraft);
   }
 
-  async deleteExperience(experienceId) {
+  async deleteExperience(experienceId, isDraft = false) {
     try {
       const res = await window.dearlyDB.deleteExperience(experienceId);
       if (res && res.success) {
         this.experiences = this.experiences.filter(e => e.id !== experienceId);
         this.updateStats();
         this.renderSurprises();
-        this.showToast('Surprise deleted successfully.');
+        this.showToast(isDraft ? 'Draft deleted successfully.' : 'Published gift deleted successfully.');
       } else {
-        alert('Could not delete surprise: ' + (res?.error || 'Unknown error'));
+        alert('Could not delete: ' + (res?.error || 'Unknown error'));
       }
     } catch (e) {
-      alert('Error deleting surprise: ' + e.message);
+      alert('Error deleting: ' + e.message);
     }
   }
 

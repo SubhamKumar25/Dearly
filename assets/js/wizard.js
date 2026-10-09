@@ -166,7 +166,7 @@ const WIZARD_CONFIG = {
             id: 'letter',
             label: 'Longer Letter or Special Note (Optional)',
             placeholder: "Pour your heart out here. Take all the space you need...",
-            maxlength: 900,
+            maxlength: 2500,
             required: false,
             minHeight: '140px'
           }
@@ -296,7 +296,7 @@ const WIZARD_CONFIG = {
             id: 'letter',
             label: 'Sincere Letter or Reconciliation Note',
             placeholder: "Take your time to write an honest, genuine message...",
-            maxlength: 900,
+            maxlength: 2500,
             required: false,
             minHeight: '140px'
           }
@@ -410,7 +410,7 @@ const WIZARD_CONFIG = {
             id: 'letter',
             label: 'Longer Birthday Letter (Optional)',
             placeholder: "Write a longer note celebrating how much they mean to you...",
-            maxlength: 900,
+            maxlength: 2500,
             required: false,
             minHeight: '130px'
           }
@@ -538,7 +538,7 @@ const WIZARD_CONFIG = {
             id: 'letter',
             label: 'Your Proposal Letter',
             placeholder: "Write the words you want them to remember for the rest of your lives...",
-            maxlength: 1000,
+            maxlength: 2500,
             required: true,
             minHeight: '150px'
           }
@@ -570,6 +570,18 @@ class DearlyWizard {
     this.uploadedPhotos = []; // { file, dataUrl, name, size }
     this.activeInput = null;
     this.activeLang = 'en';
+    this.extraMessages = []; // Optional extra personal messages (up to 5)
+    this.draftId = null; // Associated draft experience ID if editing an existing draft
+    this.maxExtraMessages = 5;
+    this.extraMsgMaxChars = 180;
+  }
+
+  // Count words helper (max 250 words for letters)
+  countWords(text) {
+    if (!text || typeof text !== 'string') return 0;
+    const trimmed = text.trim();
+    if (!trimmed) return 0;
+    return trimmed.split(/\s+/).filter(Boolean).length;
   }
 
   async init() {
@@ -601,6 +613,12 @@ class DearlyWizard {
         const requestedType = (urlParams.get('type') || 'love').toLowerCase();
         let targetRedirect = `create.html?type=${encodeURIComponent(requestedType)}`;
 
+        // Preserve draft_id if present
+        const draftParam = urlParams.get('draft_id') || urlParams.get('id');
+        if (draftParam) {
+          targetRedirect += `&draft_id=${encodeURIComponent(draftParam)}`;
+        }
+
         // Preserve from_gift if visitor arrived from a recipient link
         const fromGift = urlParams.get('from_gift') || sessionStorage.getItem('dearly_from_gift_url');
         if (fromGift) {
@@ -612,10 +630,15 @@ class DearlyWizard {
       }
     }
 
-    // 1. Read category from query param
+    // 1. Read category and optional draft_id from query param
     const urlParams = new URLSearchParams(window.location.search);
     const requestedType = (urlParams.get('type') || '').toLowerCase();
     this.type = WIZARD_CONFIG[requestedType] ? requestedType : 'love';
+
+    const draftParam = urlParams.get('draft_id') || urlParams.get('id');
+    if (draftParam) {
+      this.draftId = draftParam;
+    }
 
     // 1b. Check if user arrived from a shared recipient gift link
     this.fromGiftUrl = urlParams.get('from_gift') || sessionStorage.getItem('dearly_from_gift_url') || null;
@@ -623,8 +646,12 @@ class DearlyWizard {
       sessionStorage.setItem('dearly_from_gift_url', this.fromGiftUrl);
     }
 
-    // 2. Load draft state from sessionStorage
-    this.loadState();
+    // 2. Load draft state from database or sessionStorage
+    if (this.draftId) {
+      await this.loadDraft(this.draftId);
+    } else {
+      this.loadState();
+    }
 
     // 3. Setup container references
     this.cardEl = document.getElementById('wizard-card-body');
@@ -633,6 +660,16 @@ class DearlyWizard {
     this.progressFillEl = document.getElementById('wizard-progress-fill');
     this.btnBackEl = document.getElementById('btn-wizard-back');
     this.btnNextEl = document.getElementById('btn-wizard-next');
+
+    // 3b. Bind Save Draft buttons
+    const btnSaveDraftTop = document.getElementById('btn-save-draft');
+    const btnSaveDraftBottom = document.getElementById('btn-wizard-save-draft');
+    if (btnSaveDraftTop) {
+      btnSaveDraftTop.addEventListener('click', () => this.saveDraft());
+    }
+    if (btnSaveDraftBottom) {
+      btnSaveDraftBottom.addEventListener('click', () => this.saveDraft());
+    }
 
     // 4. Bind events
     if (this.btnBackEl) {
@@ -709,6 +746,11 @@ class DearlyWizard {
       html += this.renderField(field);
     });
 
+    // Render Extra Personal Messages if current step has 'letter' field
+    if (stepData.fields.some((f) => f.id === 'letter')) {
+      html += this.renderExtraMessagesSection();
+    }
+
     // Render Suggestions if available
     if (stepData.suggestions) {
       html += this.renderSuggestions(stepData.suggestions);
@@ -726,6 +768,68 @@ class DearlyWizard {
 
     // Scroll to top of card smoothly
     window.scrollTo({ top: 120, behavior: 'smooth' });
+  }
+
+  renderExtraMessagesSection() {
+    let listHtml = '';
+    const messages = this.extraMessages || [];
+
+    if (messages.length > 0) {
+      listHtml = '<div class="extra-messages-list" id="extra-messages-list" style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px;">';
+      messages.forEach((msg, idx) => {
+        const chars = (msg || '').length;
+        listHtml += `
+          <div class="extra-message-card" data-idx="${idx}" style="background: var(--bg-surface-soft, #FFF5F7); border: 1px solid var(--border-light); border-radius: 12px; padding: 14px 16px; position: relative; transition: all 0.2s ease;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.84rem; font-weight: 700; color: var(--color-primary); display: flex; align-items: center; gap: 6px;">
+                💌 Personal Note #${idx + 1}
+              </span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <button type="button" class="btn-extra-msg-move btn-extra-msg-up" data-idx="${idx}" title="Move Up" ${idx === 0 ? 'disabled style="opacity:0.35; cursor:not-allowed; background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:2px 8px;"' : 'style="cursor:pointer; background:#fff; border:1px solid #cbd5e1; border-radius:4px; padding:2px 8px;"'}>
+                  ↑
+                </button>
+                <button type="button" class="btn-extra-msg-move btn-extra-msg-down" data-idx="${idx}" title="Move Down" ${idx === messages.length - 1 ? 'disabled style="opacity:0.35; cursor:not-allowed; background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:2px 8px;"' : 'style="cursor:pointer; background:#fff; border:1px solid #cbd5e1; border-radius:4px; padding:2px 8px;"'}>
+                  ↓
+                </button>
+                <button type="button" class="btn-extra-msg-remove" data-idx="${idx}" title="Remove Note" style="color: #EF4444; background: #fff; border: 1px solid #FCA5A5; font-size: 0.9rem; cursor: pointer; padding: 2px 8px; border-radius: 4px;">
+                  ✕
+                </button>
+              </div>
+            </div>
+            <textarea class="form-textarea extra-msg-textarea" data-idx="${idx}" maxlength="180" 
+                      placeholder="e.g. You make my ordinary days special, or: Remember our first chai together? ☕"
+                      style="min-height: 64px; font-size: 0.92rem; padding: 10px 12px; background: #FFFFFF; width: 100%; box-sizing: border-box;">${this.escapeHtml(msg)}</textarea>
+            <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+              <span class="char-counter extra-msg-counter" id="extra-counter-${idx}" style="font-size: 0.78rem; color: var(--text-muted);">${chars} / 180 chars</span>
+            </div>
+          </div>
+        `;
+      });
+      listHtml += '</div>';
+    }
+
+    const canAddMore = messages.length < this.maxExtraMessages;
+
+    return `
+      <div class="extra-messages-section" style="margin-top: 24px; padding: 18px; background: rgba(244, 63, 94, 0.03); border: 1px dashed rgba(244, 63, 94, 0.28); border-radius: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 4px 0; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+              ✨ Extra Personal Messages <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">(Optional • ${messages.length}/${this.maxExtraMessages})</span>
+            </h3>
+            <p style="font-size: 0.84rem; color: var(--text-muted); margin: 0;">
+              Add up to 5 surprise notes or little memories revealed along your story sequence.
+            </p>
+          </div>
+          ${canAddMore ? `
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-add-extra-msg" style="border-color: var(--color-primary); color: var(--color-primary); font-weight: 600;">
+              + Add a Personal Message
+            </button>
+          ` : ''}
+        </div>
+        ${listHtml}
+      </div>
+    `;
   }
 
   renderField(field) {
@@ -805,18 +909,42 @@ class DearlyWizard {
       `;
     }
 
-    // Textarea with Character Counter
+    // Textarea with Character or 250-Word Counter
     if (field.type === 'textarea') {
+      const isLetter = field.id === 'letter';
       const max = field.maxlength || 200;
-      const currentLen = (val || '').length;
-      return `
-        <div class="form-group">
+
+      let counterHtml = '';
+      if (isLetter) {
+        const words = this.countWords(val);
+        const isOver = words > 250;
+        const isNear = words >= 225 && words <= 250;
+        const color = isOver ? '#EF4444' : (isNear ? '#F59E0B' : 'var(--text-muted)');
+        const warningNotice = isOver ? '<span style="color:#EF4444; font-size:0.75rem; margin-left:6px; font-weight:600;">⚠️ Limit exceeded (max 250 words)</span>' : (isNear ? '<span style="color:#F59E0B; font-size:0.75rem; margin-left:6px;">⚠️ Approaching 250 words limit</span>' : '');
+
+        counterHtml = `
+          <div class="form-label">
+            <span>${field.label} ${field.required ? '<span style="color:var(--color-primary)">*</span>' : ''}</span>
+            <span class="char-counter word-counter" id="counter-${field.id}" style="color: ${color}; font-weight: 600;">
+              ${words} / 250 words ${warningNotice}
+            </span>
+          </div>
+        `;
+      } else {
+        const currentLen = (val || '').length;
+        counterHtml = `
           <div class="form-label">
             <span>${field.label} ${field.required ? '<span style="color:var(--color-primary)">*</span>' : ''}</span>
             <span class="char-counter" id="counter-${field.id}">${currentLen} / ${max}</span>
           </div>
+        `;
+      }
+
+      return `
+        <div class="form-group">
+          ${counterHtml}
           <textarea id="${field.id}" class="form-textarea" placeholder="${field.placeholder || ''}" 
-                    maxlength="${max}" style="min-height: ${field.minHeight || '105px'};">${val}</textarea>
+                    ${isLetter ? '' : `maxlength="${max}"`} style="min-height: ${field.minHeight || '105px'};">${val}</textarea>
         </div>
       `;
     }
@@ -879,7 +1007,22 @@ class DearlyWizard {
         input.addEventListener('input', () => {
           this.formData[input.id] = input.value;
           if (counter) {
-            counter.textContent = `${input.value.length} / ${input.maxLength}`;
+            if (input.id === 'letter') {
+              const wordCount = this.countWords(input.value);
+              const isOver = wordCount > 250;
+              const isNear = wordCount >= 225 && wordCount <= 250;
+              const color = isOver ? '#EF4444' : (isNear ? '#F59E0B' : 'var(--text-muted)');
+              const warningNotice = isOver ? '<span style="color:#EF4444; font-size:0.75rem; margin-left:6px; font-weight:600;">⚠️ Limit exceeded (max 250 words)</span>' : (isNear ? '<span style="color:#F59E0B; font-size:0.75rem; margin-left:6px;">⚠️ Approaching 250 words limit</span>' : '');
+              counter.innerHTML = `${wordCount} / 250 words ${warningNotice}`;
+              counter.style.color = color;
+              if (isOver) {
+                input.style.borderColor = '#EF4444';
+              } else {
+                input.style.borderColor = '';
+              }
+            } else {
+              counter.textContent = `${input.value.length} / ${input.maxLength}`;
+            }
           }
         });
       } else {
@@ -986,6 +1129,96 @@ class DearlyWizard {
 
       this.renderPhotoPreviews();
     }
+
+    // 5. Extra Personal Messages bindings
+    this.bindExtraMessagesEvents();
+  }
+
+  bindExtraMessagesEvents() {
+    // 1. Add extra message button
+    const btnAdd = this.cardEl.querySelector('#btn-add-extra-msg');
+    if (btnAdd) {
+      btnAdd.addEventListener('click', () => {
+        if (this.extraMessages.length < this.maxExtraMessages) {
+          // Push a new empty message note
+          this.extraMessages.push('');
+          this.saveState();
+          this.render();
+          // Focus the newly created textarea
+          const textareas = this.cardEl.querySelectorAll('.extra-msg-textarea');
+          if (textareas.length > 0) {
+            const last = textareas[textareas.length - 1];
+            last.focus();
+            this.activeInput = last;
+          }
+          if (window.dearlyAudio) window.dearlyAudio.playHeartPop();
+        }
+      });
+    }
+
+    // 2. Extra message textarea inputs
+    const msgTextareas = this.cardEl.querySelectorAll('.extra-msg-textarea');
+    msgTextareas.forEach((ta) => {
+      const idx = parseInt(ta.getAttribute('data-idx'), 10);
+      const counter = document.getElementById(`extra-counter-${idx}`);
+
+      ta.addEventListener('focus', () => {
+        this.activeInput = ta;
+      });
+
+      ta.addEventListener('input', () => {
+        this.extraMessages[idx] = ta.value;
+        if (counter) {
+          counter.textContent = `${ta.value.length} / 180 chars`;
+        }
+      });
+    });
+
+    // 3. Move Up
+    const upBtns = this.cardEl.querySelectorAll('.btn-extra-msg-up');
+    upBtns.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        if (idx > 0) {
+          const temp = this.extraMessages[idx];
+          this.extraMessages[idx] = this.extraMessages[idx - 1];
+          this.extraMessages[idx - 1] = temp;
+          this.saveState();
+          this.render();
+          if (window.dearlyAudio) window.dearlyAudio.playSlide();
+        }
+      });
+    });
+
+    // 4. Move Down
+    const downBtns = this.cardEl.querySelectorAll('.btn-extra-msg-down');
+    downBtns.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        if (idx < this.extraMessages.length - 1) {
+          const temp = this.extraMessages[idx];
+          this.extraMessages[idx] = this.extraMessages[idx + 1];
+          this.extraMessages[idx + 1] = temp;
+          this.saveState();
+          this.render();
+          if (window.dearlyAudio) window.dearlyAudio.playSlide();
+        }
+      });
+    });
+
+    // 5. Remove
+    const removeBtns = this.cardEl.querySelectorAll('.btn-extra-msg-remove');
+    removeBtns.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        this.extraMessages.splice(idx, 1);
+        this.saveState();
+        this.render();
+      });
+    });
   }
 
   bindChipClicks() {
@@ -1165,8 +1398,25 @@ class DearlyWizard {
       }
     });
 
+    // Check letter 250-word limit if letter field is present
+    const letterEl = document.getElementById('letter');
+    if (letterEl) {
+      const letterVal = letterEl.value || this.formData.letter || '';
+      const wordCount = this.countWords(letterVal);
+      if (wordCount > 250) {
+        isValid = false;
+        letterEl.classList.add('animate-shake');
+        letterEl.style.borderColor = '#EF4444';
+        setTimeout(() => letterEl.classList.remove('animate-shake'), 500);
+        this.showToast(`Your letter has ${wordCount} words (max limit: 250 words). Please shorten it to continue 💌`);
+        if (!firstInvalidEl) firstInvalidEl = letterEl;
+      }
+    }
+
     if (!isValid) {
-      this.showToast('Please fill in the required fields to continue 💌');
+      if (!letterEl || this.countWords(letterEl.value) <= 250) {
+        this.showToast('Please fill in the required fields to continue 💌');
+      }
       if (firstInvalidEl) firstInvalidEl.focus();
     }
 
@@ -1200,6 +1450,15 @@ class DearlyWizard {
   }
 
   async goToPreview() {
+    // Re-check letter word limit
+    if (this.formData.letter) {
+      const words = this.countWords(this.formData.letter);
+      if (words > 250) {
+        this.showToast(`Cannot open preview: Letter has ${words} words (max 250 words allowed).`);
+        return;
+      }
+    }
+
     if (this.btnNextEl) {
       this.btnNextEl.disabled = true;
       this.btnNextEl.textContent = 'Loading Preview... ✨';
@@ -1213,8 +1472,18 @@ class DearlyWizard {
         }
       }
 
+      // Sync any active text inputs
+      const currentInputs = this.cardEl?.querySelectorAll('input.form-input, textarea.form-textarea');
+      if (currentInputs) {
+        currentInputs.forEach((inp) => {
+          if (inp.id) this.formData[inp.id] = inp.value;
+        });
+      }
+
       // Package complete experience data
       const completeData = {
+        id: this.draftId || null,
+        draft_id: this.draftId || null,
         type: this.type,
         sender_name: this.formData.sender_name || 'Someone who cares',
         recipient_name: this.formData.recipient_name || 'You',
@@ -1226,6 +1495,7 @@ class DearlyWizard {
           this.formData.msg_2 || '',
           this.formData.msg_3 || ''
         ].filter(Boolean),
+        extra_messages: (this.extraMessages || []).map(m => m.trim()).filter(Boolean),
         letter: this.formData.letter || '',
         photos: this.uploadedPhotos.map((p) => ({
           dataUrl: p.dataUrl,
@@ -1258,12 +1528,164 @@ class DearlyWizard {
     }
   }
 
+  async saveDraft(silent = false) {
+    // 1. Check authentication
+    const user = window.dearlyAuth?.getUser?.();
+    if (!user) {
+      if (!silent) {
+        const currentUrl = `create.html?type=${this.type}` + (this.draftId ? `&draft_id=${this.draftId}` : '');
+        this.showToast('Please sign in or create an account to save drafts 💌');
+        setTimeout(() => {
+          window.location.href = `auth.html?redirect=${encodeURIComponent(currentUrl)}`;
+        }, 1200);
+      }
+      return false;
+    }
+
+    // 2. Read current inputs from DOM into formData
+    if (this.cardEl) {
+      const inputs = this.cardEl.querySelectorAll('input.form-input, textarea.form-textarea');
+      inputs.forEach(inp => {
+        if (inp.id) this.formData[inp.id] = inp.value;
+      });
+      const extraTas = this.cardEl.querySelectorAll('.extra-msg-textarea');
+      extraTas.forEach(ta => {
+        const idx = parseInt(ta.getAttribute('data-idx'), 10);
+        this.extraMessages[idx] = ta.value;
+      });
+    }
+
+    // Check letter 250-word limit
+    if (this.formData.letter) {
+      const wordCount = this.countWords(this.formData.letter);
+      if (wordCount > 250) {
+        this.showToast(`Cannot save draft: Letter has ${wordCount} words (max 250 words allowed).`);
+        return false;
+      }
+    }
+
+    const btnDraftTop = document.getElementById('btn-save-draft');
+    const btnDraftBottom = document.getElementById('btn-wizard-save-draft');
+    const updateButtons = (text, disabled) => {
+      if (btnDraftTop) { btnDraftTop.textContent = text; btnDraftTop.disabled = disabled; }
+      if (btnDraftBottom) { btnDraftBottom.textContent = text; btnDraftBottom.disabled = disabled; }
+    };
+
+    updateButtons('Saving... ⏳', true);
+
+    try {
+      const payload = {
+        id: this.draftId || null,
+        type: this.type,
+        sender_name: this.formData.sender_name || 'Someone who cares',
+        recipient_name: this.formData.recipient_name || 'My Dear',
+        relationship: this.formData.relationship || this.formData.relationship_role || this.formData.relationship_type || '',
+        nickname: this.formData.nickname || '',
+        reason: this.formData.reason || this.formData.custom_reason || this.formData.reason_type || '',
+        messages: [
+          this.formData.msg_1 || '',
+          this.formData.msg_2 || '',
+          this.formData.msg_3 || ''
+        ].filter(Boolean),
+        extra_messages: (this.extraMessages || []).map(m => m.trim()).filter(Boolean),
+        letter: this.formData.letter || '',
+        photos: this.uploadedPhotos.map(p => ({
+          dataUrl: p.dataUrl,
+          name: p.name
+        })),
+        status: 'draft'
+      };
+
+      const result = await window.dearlyDB.saveExperience(payload);
+
+      if (result && result.success) {
+        this.draftId = result.id || this.draftId;
+        this.saveState();
+
+        // Update URL to preserve draft ID without page reload
+        const newUrl = `create.html?type=${this.type}&draft_id=${this.draftId}`;
+        window.history.replaceState(null, '', newUrl);
+
+        updateButtons('✅ Draft Saved', false);
+        if (!silent) {
+          this.showToast('Draft saved successfully! You can resume editing anytime from your dashboard 💾');
+        }
+        setTimeout(() => updateButtons('💾 Save Draft', false), 2500);
+        return true;
+      } else {
+        throw new Error(result?.error || 'Could not save draft');
+      }
+    } catch (err) {
+      console.error('Error saving draft:', err);
+      updateButtons('⚠️ Save Failed', false);
+      this.showToast(`Error saving draft: ${err.message || 'Please check your connection and retry.'}`);
+      setTimeout(() => updateButtons('💾 Retry Save', false), 2500);
+      return false;
+    }
+  }
+
+  async loadDraft(draftId) {
+    try {
+      this.showToast('Loading your saved draft... ⏳');
+      const data = await window.dearlyDB.getExperienceById(draftId);
+      if (data) {
+        this.draftId = data.id || draftId;
+        this.type = data.type || this.type;
+        const rel = data.relationship || '';
+        let relType = 'partner';
+        let relRole = '';
+        if (['friend', 'family'].includes(rel)) {
+          relType = rel;
+        } else if (['girlfriend', 'boyfriend', 'wife', 'husband'].includes(rel)) {
+          relType = 'partner';
+          relRole = rel;
+        } else if (rel === 'partner') {
+          relType = 'partner';
+          relRole = '';
+        } else if (rel) {
+          relType = 'partner';
+          relRole = rel;
+        }
+
+        this.formData = {
+          recipient_name: data.recipient_name || '',
+          sender_name: data.sender_name || '',
+          nickname: data.nickname || '',
+          relationship: rel,
+          relationship_role: relRole,
+          relationship_type: relType,
+          reason: data.reason || '',
+          reason_type: data.reason || '',
+          custom_reason: data.reason || '',
+          letter: data.letter || '',
+          msg_1: data.messages?.[0] || '',
+          msg_2: data.messages?.[1] || '',
+          msg_3: data.messages?.[2] || ''
+        };
+        this.extraMessages = Array.isArray(data.extra_messages) ? [...data.extra_messages] : [];
+        if (data.photos && Array.isArray(data.photos)) {
+          this.uploadedPhotos = data.photos.map((p, idx) => ({
+            dataUrl: typeof p === 'string' ? p : (p.dataUrl || p.url || ''),
+            name: (typeof p === 'object' && p.name) ? p.name : `Memory ${idx + 1}`
+          }));
+        }
+        this.saveState();
+        this.showToast('Draft loaded! Continue where you left off ✨');
+      }
+    } catch (e) {
+      console.warn('Could not load draft from DB, falling back to local state:', e);
+      this.loadState();
+    }
+  }
+
   saveState() {
     try {
       const state = {
+        draftId: this.draftId,
         type: this.type,
         currentStep: this.currentStep,
         formData: this.formData,
+        extraMessages: this.extraMessages,
         uploadedPhotos: this.uploadedPhotos.map((p) => ({
           dataUrl: p.dataUrl,
           name: p.name,
@@ -1280,9 +1702,11 @@ class DearlyWizard {
       console.warn('Session storage save warning (likely photo size):', e);
       try {
         const lightState = {
+          draftId: this.draftId,
           type: this.type,
           currentStep: this.currentStep,
           formData: this.formData,
+          extraMessages: this.extraMessages,
           uploadedPhotos: this.uploadedPhotos.map((p) => ({ name: p.name, size: p.size }))
         };
         sessionStorage.setItem('dearly_wizard_state_' + this.type, JSON.stringify(lightState));
@@ -1296,6 +1720,8 @@ class DearlyWizard {
       if (saved) {
         const parsed = JSON.parse(saved);
         this.formData = parsed.formData || {};
+        this.extraMessages = Array.isArray(parsed.extraMessages) ? parsed.extraMessages : [];
+        this.draftId = parsed.draftId || this.draftId || null;
         this.uploadedPhotos = parsed.uploadedPhotos || [];
         // Keep step at 1 or saved
         this.currentStep = parsed.currentStep || 1;

@@ -36,6 +36,17 @@ class DearlyStoryPlayer {
     // Render the initial opening screen
     this.currentScreenIndex = 0;
     this.renderCurrentScreen();
+
+    // Bind header bookmark button
+    const btnBookmarkHeader = document.getElementById('btn-bookmark-gift');
+    if (btnBookmarkHeader) {
+      btnBookmarkHeader.onclick = () => this.toggleSaveGift();
+    }
+
+    // Check if gift is already bookmarked / saved by recipient
+    this.checkSavedStatus().then(isSaved => {
+      this.updateBookmarkButtons(isSaved);
+    });
   }
 
   buildScreenSequence() {
@@ -47,7 +58,7 @@ class DearlyStoryPlayer {
       render: () => this.renderOpeningScreen()
     });
 
-    // Screen 2+: Message Cards (one by one)
+    // Screen 2+: Core Message Cards (one by one)
     if (this.data.messages && this.data.messages.length > 0) {
       this.data.messages.forEach((msg, idx) => {
         this.screens.push({
@@ -56,6 +67,20 @@ class DearlyStoryPlayer {
           total: this.data.messages.length,
           content: msg,
           render: () => this.renderMessageScreen(msg, idx, this.data.messages.length)
+        });
+      });
+    }
+
+    // Screen 2b: Extra Personal Messages (one by one in exact order)
+    if (this.data.extra_messages && Array.isArray(this.data.extra_messages) && this.data.extra_messages.length > 0) {
+      const activeExtras = this.data.extra_messages.filter(m => m && String(m).trim().length > 0);
+      activeExtras.forEach((extraMsg, idx) => {
+        this.screens.push({
+          type: 'extra_message',
+          index: idx,
+          total: activeExtras.length,
+          content: extraMsg,
+          render: () => this.renderExtraMessageScreen(extraMsg, idx, activeExtras.length)
         });
       });
     }
@@ -177,6 +202,27 @@ class DearlyStoryPlayer {
     if (this.data.type === 'birthday') badgeText = `Birthday Memory • ${index + 1} of ${total}`;
     if (this.data.type === 'proposal') badgeText = `Chapter ${index + 1} • Looking Back`;
 
+    return `
+      <div class="story-card story-card-message text-center">
+        <div class="story-badge">${badgeText}</div>
+
+        <div class="story-quote-box">
+          <div class="story-quote-mark">“</div>
+          <p class="story-quote-text">${this.escapeHtml(messageText)}</p>
+          <div class="story-quote-mark end">”</div>
+        </div>
+
+        <div class="story-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-story-prev">← Previous</button>
+          <button type="button" class="btn btn-primary" id="btn-story-next">Next →</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // --- Screen 2b: Extra Personal Message Screen ---
+  renderExtraMessageScreen(messageText, index, total) {
+    const badgeText = `A Little Note • ${index + 1} of ${total} 💌`;
     return `
       <div class="story-card story-card-message text-center">
         <div class="story-badge">${badgeText}</div>
@@ -446,6 +492,9 @@ class DearlyStoryPlayer {
           <button type="button" class="btn btn-secondary btn-sm" id="btn-restart-story">
             ↺ Replay Experience
           </button>
+          <button type="button" class="btn btn-secondary btn-sm btn-bookmark-gift" id="btn-reveal-save-gift" title="Save this gift to your collection">
+            🔖 <span>Save Gift</span>
+          </button>
           <a href="create.html?type=love" class="btn btn-ghost btn-sm" id="btn-recipient-create-gift" style="font-size: 0.86rem; color: var(--text-muted);">
             Create a DEARLY for someone 💌
           </a>
@@ -498,9 +547,21 @@ class DearlyStoryPlayer {
     if (btnRestart) {
       btnRestart.addEventListener('click', () => {
         this.currentScreenIndex = 0;
+        this.hasBlownCandles = false;
         this.renderCurrentScreen();
+        const env = document.getElementById('story-opening-envelope');
+        if (env) env.classList.remove('opened');
       });
     }
+
+    // 3b. Bookmark / Save Gift Button Click Handler
+    const bookmarkBtns = document.querySelectorAll('.btn-bookmark-gift, #btn-bookmark-gift, #btn-reveal-save-gift');
+    bookmarkBtns.forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        this.toggleSaveGift();
+      };
+    });
 
     // 4. Birthday Candle Blowing
     const cakeWidget = document.getElementById('birthday-cake-widget');
@@ -850,6 +911,149 @@ class DearlyStoryPlayer {
         setTimeout(() => toast.remove(), 400);
       }
     }, 5000);
+  }
+
+  async checkSavedStatus() {
+    if (!this.data || !this.data.public_id) return false;
+    try {
+      const isSaved = await window.dearlyDB?.isGiftSaved?.(this.data.public_id, this.data.id);
+      return Boolean(isSaved);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async toggleSaveGift() {
+    if (!this.data || !this.data.public_id) return;
+    const user = window.dearlyAuth?.getUser?.();
+
+    if (!user) {
+      // Unauthenticated recipient: open bookmark modal
+      this.openBookmarkModal();
+      return;
+    }
+
+    // Authenticated recipient: check status
+    const isAlreadySaved = await this.checkSavedStatus();
+    if (isAlreadySaved) {
+      const confirmed = confirm('Remove this gift from your saved gifts? (The sender\'s original gift will remain intact)');
+      if (confirmed) {
+        await window.dearlyDB?.removeSavedGift?.(this.data.public_id);
+        this.updateBookmarkButtons(false);
+        this.showToast('Removed from your saved gifts.');
+      }
+    } else {
+      const res = await window.dearlyDB?.saveRecipientGift?.(this.data.public_id, this.data.id);
+      if (res && res.success) {
+        this.updateBookmarkButtons(true);
+        this.showToast('Gift saved to your account! Find it in your Dashboard 💕');
+      } else {
+        alert(res?.error || 'Could not save gift.');
+      }
+    }
+  }
+
+  updateBookmarkButtons(isSaved) {
+    const btns = document.querySelectorAll('.btn-bookmark-gift, #btn-bookmark-gift, #btn-reveal-save-gift');
+    btns.forEach(b => {
+      if (isSaved) {
+        b.innerHTML = '❤️ <span>Saved</span>';
+        b.classList.add('saved');
+        b.title = 'Saved to your account (Click to remove)';
+      } else {
+        b.innerHTML = '🔖 <span>Save Gift</span>';
+        b.classList.remove('saved');
+        b.title = 'Save this gift to your collection';
+      }
+    });
+  }
+
+  openBookmarkModal() {
+    let modal = document.getElementById('bookmark-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'bookmark-modal';
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width: 440px; text-align: center; position: relative;">
+          <button type="button" class="modal-close-btn" id="btn-close-bookmark-modal" aria-label="Close modal">✕</button>
+          <div style="font-size: 2.5rem; margin-bottom: 10px;">🔖</div>
+          <h3 style="font-size: 1.35rem; margin-bottom: 8px;">Save This Gift</h3>
+          <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 20px;">
+            Save this heartfelt surprise to your collection so you can easily reopen it anytime.
+          </p>
+          <div id="bookmark-auth-options" style="display: flex; flex-direction: column; gap: 10px;">
+            <button type="button" class="btn btn-primary" id="btn-bookmark-login">
+              Sign In to Save to Account ✨
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-bookmark-local">
+              Save to this browser only 📱
+            </button>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">
+              Note: Local device bookmarks are saved in this browser. Clearing browser data may remove them.
+            </p>
+          </div>
+          <div id="bookmark-saved-notice" style="display: none; padding: 12px; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 12px; color: #065F46; font-size: 0.9rem; font-weight: 600;"></div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    modal.classList.add('active');
+    const optionsDiv = document.getElementById('bookmark-auth-options');
+    const noticeDiv = document.getElementById('bookmark-saved-notice');
+    if (optionsDiv) optionsDiv.style.display = 'flex';
+    if (noticeDiv) noticeDiv.style.display = 'none';
+
+    const btnLogin = document.getElementById('btn-bookmark-login');
+    const btnLocal = document.getElementById('btn-bookmark-local');
+    const btnClose = document.getElementById('btn-close-bookmark-modal');
+
+    if (btnLogin) {
+      btnLogin.onclick = () => {
+        const currentUrl = window.location.href;
+        window.location.href = `auth.html?redirect=${encodeURIComponent(currentUrl)}`;
+      };
+    }
+
+    if (btnLocal) {
+      btnLocal.onclick = async () => {
+        await window.dearlyDB?.saveRecipientGift?.(this.data.public_id, this.data.id);
+        this.updateBookmarkButtons(true);
+        if (optionsDiv) optionsDiv.style.display = 'none';
+        if (noticeDiv) {
+          noticeDiv.style.display = 'block';
+          noticeDiv.textContent = '📱 Saved on this browser! Note: If you clear browser data, it may be removed. Sign in anytime to keep it permanently in your account.';
+        }
+        setTimeout(() => {
+          modal.classList.remove('active');
+        }, 2200);
+      };
+    }
+
+    if (btnClose) {
+      btnClose.onclick = () => modal.classList.remove('active');
+    }
+    modal.onclick = (e) => {
+      if (e.target === modal) modal.classList.remove('active');
+    };
+  }
+
+  showToast(message) {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toast-container';
+      container.className = 'toast-container';
+      document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+      setTimeout(() => toast.remove(), 300);
+    }, 3200);
   }
 }
 

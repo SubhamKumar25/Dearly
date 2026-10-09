@@ -19,11 +19,13 @@ CREATE TABLE IF NOT EXISTS public.experiences (
     nickname VARCHAR(64),
     reason TEXT,
     messages JSONB NOT NULL DEFAULT '[]'::jsonb,
+    extra_messages JSONB DEFAULT '[]'::jsonb,
     letter TEXT,
     memories JSONB DEFAULT '[]'::jsonb,
     photos JSONB DEFAULT '[]'::jsonb,
     theme VARCHAR(64) DEFAULT 'default',
     status VARCHAR(20) NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'published', 'archived')),
+    first_opened_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
@@ -166,7 +168,44 @@ CREATE POLICY "Users can delete their own notifications"
     TO authenticated
     USING (auth.uid() = user_id);
 
--- 5. Secure Recipient Response Submission RPC (SECURITY DEFINER)
+-- 5. Create saved_gifts table (Recipient Bookmarks / Saved Gifts)
+CREATE TABLE IF NOT EXISTS public.saved_gifts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    experience_id UUID NOT NULL REFERENCES public.experiences(id) ON DELETE CASCADE,
+    public_id UUID NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    UNIQUE(user_id, experience_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_saved_gifts_user_id ON public.saved_gifts(user_id);
+CREATE INDEX IF NOT EXISTS idx_saved_gifts_experience_id ON public.saved_gifts(experience_id);
+CREATE INDEX IF NOT EXISTS idx_saved_gifts_created_at ON public.saved_gifts(created_at DESC);
+
+ALTER TABLE public.saved_gifts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own saved gifts" ON public.saved_gifts;
+CREATE POLICY "Users can view their own saved gifts"
+    ON public.saved_gifts
+    FOR SELECT
+    TO authenticated
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can add their own saved gifts" ON public.saved_gifts;
+CREATE POLICY "Users can add their own saved gifts"
+    ON public.saved_gifts
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can remove their own saved gifts" ON public.saved_gifts;
+CREATE POLICY "Users can remove their own saved gifts"
+    ON public.saved_gifts
+    FOR DELETE
+    TO authenticated
+    USING (auth.uid() = user_id);
+
+-- 6. Secure Recipient Response Submission RPC (SECURITY DEFINER)
 CREATE OR REPLACE FUNCTION public.submit_experience_response(
     p_public_id UUID,
     p_message TEXT DEFAULT NULL,
