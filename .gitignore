@@ -1,0 +1,4 @@
+# Ignore temporary helper scripts
+push-to-github.bat
+.DS_Store
+Thumbs.db
