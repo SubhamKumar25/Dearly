@@ -216,13 +216,6 @@
         }
       });
 
-      // Check for Supabase recovery token in URL hash
-      if (window.location.hash && window.location.hash.includes('type=recovery')) {
-        switchTab('update-pass');
-      } else {
-        switchTab(initialMode);
-      }
-
       // Tab switcher for Log In & Sign Up
       const tabBtns = document.querySelectorAll('.auth-tab-btn');
       tabBtns.forEach(btn => {
@@ -230,6 +223,13 @@
           switchTab(btn.getAttribute('data-tab'));
         });
       });
+
+      // Check for Supabase recovery token in URL hash
+      if (window.location.hash && window.location.hash.includes('type=recovery')) {
+        switchTab('update-pass');
+      } else {
+        switchTab(initialMode);
+      }
 
       // "Forgot password?" link handler
       const linkForgot = document.getElementById('link-forgot-pass');
