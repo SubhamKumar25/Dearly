@@ -726,6 +726,20 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
 }
 
+.footer-credit {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: -6px;
+  letter-spacing: 0.15px;
+  line-height: 1.5;
+}
+
+.footer-credit .credit-author {
+  color: var(--color-primary);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
 /* --- Forms & Wizard UI Elements --- */
 .form-group {
   margin-bottom: var(--space-lg);
