@@ -180,8 +180,28 @@ class DearlyPreviewController {
 
     if (this.previewData?.letter) {
       const words = this.countWords(this.previewData.letter);
-      if (words > 250) {
-        alert(`Cannot save draft: Letter has ${words} words (max 250 words allowed). Please return to edit and shorten it.`);
+      if (words > 1500) {
+        alert(`Cannot save draft: Letter has ${words} words (max 1,500 words allowed). Please return to edit and shorten it.`);
+        return;
+      }
+    }
+
+    if (Array.isArray(this.previewData?.messages)) {
+      for (let i = 0; i < this.previewData.messages.length; i++) {
+        const msg = this.previewData.messages[i];
+        if (msg) {
+          const words = this.countWords(msg);
+          if (words > 250) {
+            alert(`Cannot save draft: Story message ${i + 1} has ${words} words (max 250 words allowed). Please return to edit and shorten it.`);
+            return;
+          }
+        }
+      }
+    }
+
+    if (Array.isArray(this.previewData?.extra_messages)) {
+      if (this.previewData.extra_messages.some(m => m && m.length > 300)) {
+        alert('Cannot save draft: One or more extra personal messages exceed 300 characters.');
         return;
       }
     }
@@ -220,11 +240,33 @@ class DearlyPreviewController {
   async publishExperience() {
     if (this.isPublishing) return;
 
-    // Check letter 250-word limit
+    // Check letter 1,500-word limit
     if (this.previewData?.letter) {
       const words = this.countWords(this.previewData.letter);
-      if (words > 250) {
-        alert(`Cannot publish gift: Your letter has ${words} words, which exceeds the 250-word limit. Please return to edit and shorten your letter.`);
+      if (words > 1500) {
+        alert(`Cannot publish gift: Your letter has ${words} words, which exceeds the 1,500-word limit. Please return to edit and shorten your letter.`);
+        return;
+      }
+    }
+
+    // Check short story messages 250-word limit
+    if (Array.isArray(this.previewData?.messages)) {
+      for (let i = 0; i < this.previewData.messages.length; i++) {
+        const msg = this.previewData.messages[i];
+        if (msg) {
+          const words = this.countWords(msg);
+          if (words > 250) {
+            alert(`Cannot publish gift: Story message ${i + 1} has ${words} words, which exceeds the 250-word limit. Please return to edit and shorten it.`);
+            return;
+          }
+        }
+      }
+    }
+
+    // Check extra personal messages limit
+    if (Array.isArray(this.previewData?.extra_messages)) {
+      if (this.previewData.extra_messages.some(m => m && m.length > 300)) {
+        alert('Cannot publish gift: One or more extra personal messages exceed 300 characters.');
         return;
       }
     }

@@ -142,7 +142,7 @@ const WIZARD_CONFIG = {
             id: 'msg_1',
             label: 'Message 1',
             placeholder: "e.g. I don't say it enough, but you make ordinary days feel magical.",
-            maxlength: 180,
+            wordLimit: 250,
             required: true
           },
           {
@@ -150,7 +150,7 @@ const WIZARD_CONFIG = {
             id: 'msg_2',
             label: 'Message 2',
             placeholder: "e.g. One of my favourite things about us is laughing until our stomachs hurt.",
-            maxlength: 180,
+            wordLimit: 250,
             required: true
           },
           {
@@ -158,16 +158,17 @@ const WIZARD_CONFIG = {
             id: 'msg_3',
             label: 'Message 3',
             placeholder: "e.g. With you, I never have to pretend to be anyone else.",
-            maxlength: 180,
+            wordLimit: 250,
             required: true
           },
           {
             type: 'textarea',
             id: 'letter',
             label: 'Longer Letter or Special Note (Optional)',
-            placeholder: "Pour your heart out here. Take all the space you need...",
+            placeholder: "Pour your heart out here. Take all the space you need (up to 1,500 words)...",
+            wordLimit: 1500,
             required: false,
-            minHeight: '140px'
+            minHeight: '180px'
           }
         ],
         suggestions: {
@@ -271,7 +272,7 @@ const WIZARD_CONFIG = {
             id: 'msg_1',
             label: 'Message 1',
             placeholder: "e.g. I've been thinking non-stop about what happened, and I feel truly terrible.",
-            maxlength: 180,
+            wordLimit: 250,
             required: true
           },
           {
@@ -279,7 +280,7 @@ const WIZARD_CONFIG = {
             id: 'msg_2',
             label: 'Message 2',
             placeholder: "e.g. You deserved so much better from me in that moment.",
-            maxlength: 180,
+            wordLimit: 250,
             required: true
           },
           {
@@ -287,16 +288,17 @@ const WIZARD_CONFIG = {
             id: 'msg_3',
             label: 'Message 3',
             placeholder: "e.g. I value you more than my ego, and I want to make things right.",
-            maxlength: 180,
+            wordLimit: 250,
             required: true
           },
           {
             type: 'textarea',
             id: 'letter',
             label: 'Sincere Letter or Reconciliation Note',
-            placeholder: "Take your time to write an honest, genuine message...",
+            placeholder: "Take your time to write an honest, genuine message (up to 1,500 words)...",
+            wordLimit: 1500,
             required: false,
-            minHeight: '140px'
+            minHeight: '180px'
           }
         ],
         suggestions: {
@@ -384,7 +386,7 @@ const WIZARD_CONFIG = {
             id: 'msg_1',
             label: 'Birthday Wish 1',
             placeholder: "e.g. Happy Birthday to the one who makes everyone around them smile!",
-            maxlength: 180,
+            wordLimit: 250,
             required: true
           },
           {
@@ -392,7 +394,7 @@ const WIZARD_CONFIG = {
             id: 'msg_2',
             label: 'Favourite Memory Together',
             placeholder: "e.g. Remember that road trip where we got lost and ended up singing all night?",
-            maxlength: 180,
+            wordLimit: 250,
             required: true
           },
           {
@@ -400,16 +402,17 @@ const WIZARD_CONFIG = {
             id: 'msg_3',
             label: 'A Wish For Their Year Ahead',
             placeholder: "e.g. May this year bring you all the peace, laughter, and success you deserve.",
-            maxlength: 180,
+            wordLimit: 250,
             required: true
           },
           {
             type: 'textarea',
             id: 'letter',
             label: 'Longer Birthday Letter (Optional)',
-            placeholder: "Write a longer note celebrating how much they mean to you...",
+            placeholder: "Write a longer note celebrating how much they mean to you (up to 1,500 words)...",
+            wordLimit: 1500,
             required: false,
-            minHeight: '130px'
+            minHeight: '180px'
           }
         ],
         suggestions: {
@@ -482,7 +485,7 @@ const WIZARD_CONFIG = {
             id: 'msg_1',
             label: 'How you met or when you knew',
             placeholder: "e.g. The first time we sat together for coffee, three hours felt like five minutes.",
-            maxlength: 220,
+            wordLimit: 250,
             required: true
           },
           {
@@ -490,7 +493,7 @@ const WIZARD_CONFIG = {
             id: 'msg_2',
             label: 'Your favourite memory together',
             placeholder: "e.g. That quiet evening under the stars when everything just clicked.",
-            maxlength: 220,
+            wordLimit: 250,
             required: true
           },
           {
@@ -498,7 +501,7 @@ const WIZARD_CONFIG = {
             id: 'msg_3',
             label: 'What you love most about them',
             placeholder: "e.g. Your kindness, your laughter, and the way you make every place feel like home.",
-            maxlength: 220,
+            wordLimit: 250,
             required: true
           }
         ],
@@ -534,9 +537,10 @@ const WIZARD_CONFIG = {
             type: 'textarea',
             id: 'letter',
             label: 'Your Proposal Letter',
-            placeholder: "Write the words you want them to remember for the rest of your lives...",
+            placeholder: "Write the words you want them to remember for the rest of your lives (up to 1,500 words)...",
+            wordLimit: 1500,
             required: true,
-            minHeight: '150px'
+            minHeight: '180px'
           }
         ],
         btnNext: 'Add Your Journey Photos →'
@@ -827,19 +831,19 @@ class DearlyWizard {
         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
           <div>
             <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 4px 0; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
-              Add Extra Personal Messages 💌 <span style="font-size: 0.82rem; font-weight: 500; color: var(--text-muted);">(${messages.length}/${this.maxExtraMessages} added • Optional)</span>
+              Extra Personal Messages <span style="font-size: 0.82rem; font-weight: 500; color: var(--text-muted);">(${messages.length}/${this.maxExtraMessages} added • Optional)</span>
             </h3>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
-              Add a few little messages to make your gift even more personal.
+              Add a few little messages to make your gift more personal.
             </p>
           </div>
           ${canAddMore ? `
             <button type="button" class="btn btn-secondary btn-sm" id="btn-add-extra-msg" style="border-color: var(--color-primary); color: var(--color-primary); font-weight: 600;">
-              + Add Personal Message
+              + Add Message
             </button>
           ` : `
             <button type="button" class="btn btn-secondary btn-sm" id="btn-add-extra-msg" disabled style="opacity: 0.5; cursor: not-allowed; border-color: #cbd5e1; color: var(--text-muted); font-weight: 600;">
-              + Add Personal Message (Max reached)
+              + Add Message (Max reached)
             </button>
           `}
         </div>
@@ -925,28 +929,31 @@ class DearlyWizard {
       `;
     }
 
-    // Textarea with Character or 250-Word Counter
+    // Textarea with Live Word Counter or Character Counter
     if (field.type === 'textarea') {
-      const isLetter = field.id === 'letter';
-      const max = field.maxlength || 200;
+      const isWordCounted = field.wordLimit !== undefined || field.id === 'letter' || field.id.startsWith('msg_');
+      const maxWords = field.wordLimit || (field.id === 'letter' ? 1500 : 250);
 
       let counterHtml = '';
-      if (isLetter) {
+      if (isWordCounted) {
         const words = this.countWords(val);
-        const isOver = words > 250;
-        const isNear = words >= 225 && words <= 250;
+        const isOver = words > maxWords;
+        const isNear = words >= Math.floor(maxWords * 0.9) && words <= maxWords;
         const color = isOver ? '#EF4444' : (isNear ? '#F59E0B' : 'var(--text-muted)');
-        const warningNotice = isOver ? '<span style="color:#EF4444; font-size:0.75rem; margin-left:6px; font-weight:600;">⚠️ Limit exceeded (max 250 words)</span>' : (isNear ? '<span style="color:#F59E0B; font-size:0.75rem; margin-left:6px;">⚠️ Approaching 250 words limit</span>' : '');
+        const warningNotice = isOver
+          ? `<span style="color:#EF4444; font-size:0.75rem; margin-left:6px; font-weight:600;">⚠️ Limit exceeded (max ${maxWords} words)</span>`
+          : (isNear ? `<span style="color:#F59E0B; font-size:0.75rem; margin-left:6px;">⚠️ Approaching ${maxWords} words limit</span>` : '');
 
         counterHtml = `
           <div class="form-label">
             <span>${field.label} ${field.required ? '<span style="color:var(--color-primary)">*</span>' : ''}</span>
             <span class="char-counter word-counter" id="counter-${field.id}" style="color: ${color}; font-weight: 600;">
-              ${words} / 250 words ${warningNotice}
+              ${words} / ${maxWords} words ${warningNotice}
             </span>
           </div>
         `;
       } else {
+        const max = field.maxlength || 250;
         const currentLen = (val || '').length;
         counterHtml = `
           <div class="form-label">
@@ -960,7 +967,9 @@ class DearlyWizard {
         <div class="form-group">
           ${counterHtml}
           <textarea id="${field.id}" class="form-textarea" placeholder="${field.placeholder || ''}" 
-                    ${isLetter ? '' : `maxlength="${max}"`} style="min-height: ${field.minHeight || '105px'};">${val}</textarea>
+                    data-word-limit="${isWordCounted ? maxWords : ''}"
+                    ${isWordCounted ? '' : `maxlength="${field.maxlength || 250}"`}
+                    style="min-height: ${field.minHeight || (field.id === 'letter' ? '180px' : '105px')}; line-height: 1.6; resize: vertical;">${this.escapeHtml(val)}</textarea>
         </div>
       `;
     }
@@ -1023,13 +1032,18 @@ class DearlyWizard {
         input.addEventListener('input', () => {
           this.formData[input.id] = input.value;
           if (counter) {
-            if (input.id === 'letter') {
+            const wordLimitAttr = input.getAttribute('data-word-limit');
+            const isWordCounted = Boolean(wordLimitAttr) || input.id === 'letter' || input.id.startsWith('msg_');
+            if (isWordCounted) {
+              const maxWords = parseInt(wordLimitAttr, 10) || (input.id === 'letter' ? 1500 : 250);
               const wordCount = this.countWords(input.value);
-              const isOver = wordCount > 250;
-              const isNear = wordCount >= 225 && wordCount <= 250;
+              const isOver = wordCount > maxWords;
+              const isNear = wordCount >= Math.floor(maxWords * 0.9) && wordCount <= maxWords;
               const color = isOver ? '#EF4444' : (isNear ? '#F59E0B' : 'var(--text-muted)');
-              const warningNotice = isOver ? '<span style="color:#EF4444; font-size:0.75rem; margin-left:6px; font-weight:600;">⚠️ Limit exceeded (max 250 words)</span>' : (isNear ? '<span style="color:#F59E0B; font-size:0.75rem; margin-left:6px;">⚠️ Approaching 250 words limit</span>' : '');
-              counter.innerHTML = `${wordCount} / 250 words ${warningNotice}`;
+              const warningNotice = isOver
+                ? `<span style="color:#EF4444; font-size:0.75rem; margin-left:6px; font-weight:600;">⚠️ Limit exceeded (max ${maxWords} words)</span>`
+                : (isNear ? `<span style="color:#F59E0B; font-size:0.75rem; margin-left:6px;">⚠️ Approaching ${maxWords} words limit</span>` : '');
+              counter.innerHTML = `${wordCount} / ${maxWords} words ${warningNotice}`;
               counter.style.color = color;
               if (isOver) {
                 input.style.borderColor = '#EF4444';
@@ -1419,20 +1433,27 @@ class DearlyWizard {
       }
     });
 
-    // Check letter 250-word limit if letter field is present
-    const letterEl = document.getElementById('letter');
-    if (letterEl) {
-      const letterVal = letterEl.value || this.formData.letter || '';
-      const wordCount = this.countWords(letterVal);
-      if (wordCount > 250) {
-        isValid = false;
-        letterEl.classList.add('animate-shake');
-        letterEl.style.borderColor = '#EF4444';
-        setTimeout(() => letterEl.classList.remove('animate-shake'), 500);
-        this.showToast(`Your letter has ${wordCount} words (max limit: 250 words). Please shorten it to continue 💌`);
-        if (!firstInvalidEl) firstInvalidEl = letterEl;
+    // Check word limits on all fields in this step
+    stepData.fields.forEach((field) => {
+      if (field.type === 'textarea') {
+        const el = document.getElementById(field.id);
+        const val = this.formData[field.id] || (el ? el.value : '') || '';
+        const maxWords = field.wordLimit || (field.id === 'letter' ? 1500 : (field.id.startsWith('msg_') ? 250 : null));
+        if (maxWords) {
+          const words = this.countWords(val);
+          if (words > maxWords) {
+            isValid = false;
+            if (el) {
+              el.classList.add('animate-shake');
+              el.style.borderColor = '#EF4444';
+              setTimeout(() => el.classList.remove('animate-shake'), 500);
+              if (!firstInvalidEl) firstInvalidEl = el;
+            }
+            this.showToast(`"${field.label || 'Field'}" has ${words} words (max limit: ${maxWords} words). Please shorten it to continue 💌`);
+          }
+        }
       }
-    }
+    });
 
     // Check extra personal messages limit (max 300 chars each)
     if (this.extraMessages && this.extraMessages.some(m => m && m.length > 300)) {
@@ -1441,10 +1462,8 @@ class DearlyWizard {
     }
 
     if (!isValid) {
-      if (!letterEl || this.countWords(letterEl.value) <= 250) {
-        if (!this.extraMessages || !this.extraMessages.some(m => m && m.length > 300)) {
-          this.showToast('Please fill in the required fields to continue 💌');
-        }
+      if (!firstInvalidEl) {
+        this.showToast('Please check the required fields and word limits to continue 💌');
       }
       if (firstInvalidEl) firstInvalidEl.focus();
     }
@@ -1482,12 +1501,22 @@ class DearlyWizard {
 
   async goToPreview() {
     this.syncCurrentStepInputs();
-    // Re-check letter word limit
+    // Re-check letter 1,500-word limit
     if (this.formData.letter) {
       const words = this.countWords(this.formData.letter);
-      if (words > 250) {
-        this.showToast(`Cannot open preview: Letter has ${words} words (max 250 words allowed).`);
+      if (words > 1500) {
+        this.showToast(`Cannot open preview: Letter has ${words} words (max 1,500 words allowed).`);
         return;
+      }
+    }
+    // Re-check short messages 250-word limit
+    for (const msgKey of ['msg_1', 'msg_2', 'msg_3']) {
+      if (this.formData[msgKey]) {
+        const words = this.countWords(this.formData[msgKey]);
+        if (words > 250) {
+          this.showToast(`Cannot open preview: Message has ${words} words (max 250 words allowed).`);
+          return;
+        }
       }
     }
 
@@ -1577,12 +1606,22 @@ class DearlyWizard {
     // 2. Read current inputs from DOM into formData and extraMessages
     this.syncCurrentStepInputs();
 
-    // Check letter 250-word limit
+    // Check letter 1,500-word limit
     if (this.formData.letter) {
       const wordCount = this.countWords(this.formData.letter);
-      if (wordCount > 250) {
-        this.showToast(`Cannot save draft: Letter has ${wordCount} words (max 250 words allowed).`);
+      if (wordCount > 1500) {
+        this.showToast(`Cannot save draft: Letter has ${wordCount} words (max 1,500 words allowed).`);
         return false;
+      }
+    }
+    // Check short messages 250-word limit
+    for (const msgKey of ['msg_1', 'msg_2', 'msg_3']) {
+      if (this.formData[msgKey]) {
+        const words = this.countWords(this.formData[msgKey]);
+        if (words > 250) {
+          this.showToast(`Cannot save draft: Message has ${words} words (max 250 words allowed).`);
+          return false;
+        }
       }
     }
 

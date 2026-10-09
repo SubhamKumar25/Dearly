@@ -353,8 +353,10 @@
   position: relative;
   text-align: left;
   line-height: 1.8;
-  max-height: 380px;
+  max-height: clamp(380px, 60vh, 540px);
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary-light, #FECDD3) transparent;
 }
 
 .letter-sheet::before {
