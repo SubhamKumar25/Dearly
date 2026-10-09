@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/s/:id", "destination": "/surprise.html?id=:id" },
+    { "source": "/create/:type", "destination": "/create.html?type=:type" },
+    { "source": "/preview/:type", "destination": "/preview.html?type=:type" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}
