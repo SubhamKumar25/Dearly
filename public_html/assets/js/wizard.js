@@ -5,64 +5,6 @@
  * and photo management.
  */
 
-// IndexedDB cross-page storage helper (bypasses 5MB sessionStorage quota for photos)
-const DearlyStorage = {
-  dbName: 'dearly_storage_db',
-  storeName: 'cache',
-
-  async openDB() {
-    return new Promise((resolve) => {
-      if (!window.indexedDB) return resolve(null);
-      try {
-        const req = indexedDB.open(this.dbName, 1);
-        req.onupgradeneeded = (e) => {
-          const db = e.target.result;
-          if (!db.objectStoreNames.contains(this.storeName)) {
-            db.createObjectStore(this.storeName);
-          }
-        };
-        req.onsuccess = (e) => resolve(e.target.result);
-        req.onerror = () => resolve(null);
-      } catch (e) {
-        resolve(null);
-      }
-    });
-  },
-
-  async set(key, value) {
-    try {
-      const db = await this.openDB();
-      if (!db) return false;
-      return new Promise((resolve) => {
-        const tx = db.transaction(this.storeName, 'readwrite');
-        const store = tx.objectStore(this.storeName);
-        store.put(value, key);
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => resolve(false);
-      });
-    } catch (e) {
-      return false;
-    }
-  },
-
-  async get(key) {
-    try {
-      const db = await this.openDB();
-      if (!db) return null;
-      return new Promise((resolve) => {
-        const tx = db.transaction(this.storeName, 'readonly');
-        const store = tx.objectStore(this.storeName);
-        const req = store.get(key);
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => resolve(null);
-      });
-    } catch (e) {
-      return null;
-    }
-  }
-};
-window.DearlyStorage = DearlyStorage;
-
 // Category Configurations
 const WIZARD_CONFIG = {
   love: {
@@ -584,8 +526,9 @@ class DearlyWizard {
     this.extraMsgMaxChars = 300;
   }
 
-  // Count words helper (max 250 words for letters)
+  // Count words helper (centralized in DearlyUtils)
   countWords(text) {
+    if (window.DearlyUtils) return window.DearlyUtils.countWords(text);
     if (!text || typeof text !== 'string') return 0;
     const trimmed = text.trim();
     if (!trimmed) return 0;
@@ -1830,6 +1773,7 @@ class DearlyWizard {
   }
 
   escapeHtml(str) {
+    if (window.DearlyUtils) return window.DearlyUtils.escapeHtml(str);
     if (!str) return '';
     return String(str)
       .replace(/&/g, '&amp;')

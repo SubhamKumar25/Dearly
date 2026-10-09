@@ -777,6 +777,7 @@ class DearlyDashboardController {
   }
 
   escapeHtml(str) {
+    if (window.DearlyUtils) return window.DearlyUtils.escapeHtml(str);
     if (!str) return '';
     return String(str)
       .replace(/&/g, '&amp;')
