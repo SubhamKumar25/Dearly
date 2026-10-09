@@ -479,43 +479,50 @@ const WIZARD_CONFIG = {
         step: 2,
         title: "How did it all begin?",
         subtitle: "Revisit the moment you realized they were the one.",
+        hasExtraMessages: true,
         fields: [
           {
             type: 'textarea',
             id: 'msg_1',
-            label: 'How you met or when you knew',
-            placeholder: "e.g. The first time we sat together for coffee, three hours felt like five minutes.",
+            fieldTitle: 'Our Story Begins 💗',
+            label: 'When did you first feel something special between you?',
+            placeholder: 'Maybe it was the first conversation, a little smile, or a moment you still remember…',
             wordLimit: 250,
             required: true
           },
           {
             type: 'textarea',
             id: 'msg_2',
-            label: 'Your favourite memory together',
-            placeholder: "e.g. That quiet evening under the stars when everything just clicked.",
+            fieldTitle: 'A Memory Close to Your Heart ✨',
+            label: 'Which moment together would you love to relive?',
+            placeholder: 'A quiet walk, a shared laugh, or the day everything felt right…',
             wordLimit: 250,
             required: true
           },
           {
             type: 'textarea',
             id: 'msg_3',
-            label: 'What you love most about them',
-            placeholder: "e.g. Your kindness, your laughter, and the way you make every place feel like home.",
+            fieldTitle: 'What Makes Them Special ❤️',
+            label: 'What do you love most about them?',
+            placeholder: 'The little things they do, how they make you feel, or why life is better with them…',
             wordLimit: 250,
             required: true
           }
         ],
         suggestions: {
           en: [
-            "From the moment I met you, life had more color...",
-            "I knew you were the one when...",
+            "The first time we spoke, hours felt like seconds...",
+            "That quiet walk under the stars when everything clicked...",
+            "The effortless way you make me smile every day...",
             "Loving you is the easiest choice I have ever made.",
-            "I want every tomorrow to start with you."
+            "With you, I've found my safe place and forever home."
           ],
           hinglish: [
-            "Jab se tum mile ho, sab kuch complete lagta hai...",
-            "Mujhe har din tumhare saath bitana hai...",
-            "Tum meri sabse favourite reality ho."
+            "Pehli baar jab mile the, dil ko laga ki ye special hai...",
+            "Wo shaam jab hum bina wajah haste rahe...",
+            "Tumhari smile meri poori duniya better bana deti hai...",
+            "Mujhe har naya din sirf tumhare saath shuru karna hai...",
+            "Tum meri life ka sabse khoobsurat hissa ho."
           ]
         },
         btnNext: 'The Big Question & Letter →'
@@ -524,6 +531,7 @@ const WIZARD_CONFIG = {
         step: 3,
         title: "The Big Question & Letter",
         subtitle: "Build towards that unforgettable moment.",
+        hasExtraMessages: false,
         fields: [
           {
             type: 'text',
@@ -762,14 +770,17 @@ class DearlyWizard {
       html += this.renderField(field);
     });
 
-    // Render Extra Personal Messages if current step has 'letter' field
-    if (stepData.fields.some((f) => f.id === 'letter')) {
-      html += this.renderExtraMessagesSection();
-    }
-
-    // Render Suggestions if available
+    // Render Suggestions if available (directly below story fields)
     if (stepData.suggestions) {
       html += this.renderSuggestions(stepData.suggestions);
+    }
+
+    // Render Extra Personal Messages beneath story fields and suggestions on story steps
+    const isStoryStep = stepData.hasExtraMessages === true || 
+      (stepData.fields.some((f) => f.id.startsWith('msg_')) && stepData.hasExtraMessages !== false);
+
+    if (isStoryStep) {
+      html += this.renderExtraMessagesSection();
     }
 
     html += `
@@ -934,6 +945,10 @@ class DearlyWizard {
       const isWordCounted = field.wordLimit !== undefined || field.id === 'letter' || field.id.startsWith('msg_');
       const maxWords = field.wordLimit || (field.id === 'letter' ? 1500 : 250);
 
+      const titleHtml = field.fieldTitle
+        ? `<div class="story-field-header" style="font-weight: 700; font-size: 1.05rem; color: var(--color-primary, #F43F5E); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">${this.escapeHtml(field.fieldTitle)}</div>`
+        : '';
+
       let counterHtml = '';
       if (isWordCounted) {
         const words = this.countWords(val);
@@ -945,8 +960,8 @@ class DearlyWizard {
           : (isNear ? `<span style="color:#F59E0B; font-size:0.75rem; margin-left:6px;">⚠️ Approaching ${maxWords} words limit</span>` : '');
 
         counterHtml = `
-          <div class="form-label">
-            <span>${field.label} ${field.required ? '<span style="color:var(--color-primary)">*</span>' : ''}</span>
+          <div class="form-label" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 6px;">
+            <span style="font-size: 0.92rem; color: var(--text-main); font-weight: 500;">${field.label} ${field.required ? '<span style="color:var(--color-primary)">*</span>' : ''}</span>
             <span class="char-counter word-counter" id="counter-${field.id}" style="color: ${color}; font-weight: 600;">
               ${words} / ${maxWords} words ${warningNotice}
             </span>
@@ -964,7 +979,8 @@ class DearlyWizard {
       }
 
       return `
-        <div class="form-group">
+        <div class="form-group story-form-group" style="margin-bottom: var(--space-lg, 24px);">
+          ${titleHtml}
           ${counterHtml}
           <textarea id="${field.id}" class="form-textarea" placeholder="${field.placeholder || ''}" 
                     data-word-limit="${isWordCounted ? maxWords : ''}"
@@ -1062,9 +1078,11 @@ class DearlyWizard {
       }
     });
 
-    // Default active input to first textarea or text
-    if (!this.activeInput && inputs.length > 0) {
-      this.activeInput = inputs[0];
+    // Ensure active input points to a valid attached element in current card
+    const isActiveAttached = this.activeInput && this.cardEl.contains(this.activeInput);
+    if (!isActiveAttached && inputs.length > 0) {
+      const firstTextarea = this.cardEl.querySelector('textarea.form-textarea');
+      this.activeInput = firstTextarea || inputs[0];
     }
 
     // 2. Options Grid bindings

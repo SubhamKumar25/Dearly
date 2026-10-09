@@ -200,7 +200,14 @@ class DearlyStoryPlayer {
     let badgeText = `A Note For You • ${index + 1} of ${total}`;
     if (this.data.type === 'apology') badgeText = `From My Heart • ${index + 1} of ${total}`;
     if (this.data.type === 'birthday') badgeText = `Birthday Memory • ${index + 1} of ${total}`;
-    if (this.data.type === 'proposal') badgeText = `Chapter ${index + 1} • Looking Back`;
+    if (this.data.type === 'proposal') {
+      const proposalTitles = [
+        'Our Story Begins 💗',
+        'A Memory Close to Your Heart ✨',
+        'What Makes Them Special ❤️'
+      ];
+      badgeText = proposalTitles[index] || `Chapter ${index + 1} • Looking Back`;
+    }
 
     return `
       <div class="story-card story-card-message text-center">
