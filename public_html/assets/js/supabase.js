@@ -297,14 +297,48 @@ class DearlyDatabaseService {
   }
 
   /**
+   * Helper: Check if a string is a valid UUID
+   */
+  isValidUuid(str) {
+    if (!str || typeof str !== 'string') return false;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str.trim());
+  }
+
+  /**
    * Fetch experience by public_id
    */
   async getExperienceByPublicId(publicId) {
     if (!publicId) return null;
     await this.ensureReady();
 
-    // 1. If Supabase is active, query DB
-    if (this.isReady && this.client) {
+    // Built-in Demo fallback for immediate preview and testing
+    if (publicId === 'demo' || publicId === 'demo-gift') {
+      return {
+        id: 'demo-experience-id',
+        public_id: 'demo',
+        creator_id: null,
+        type: 'love',
+        sender_name: 'Someone who cares ✨',
+        recipient_name: 'You 💕',
+        relationship: 'Partner',
+        nickname: 'My Favorite Person',
+        reason: 'Just a little reminder of how special you are.',
+        messages: [
+          'Every moment with you brings warmth, laughter, and so much peace.',
+          'You make ordinary days feel extraordinarily bright.',
+          'Thank you for simply being you — genuine, wonderful, and cherished.'
+        ],
+        letter: 'Life moves fast, but having you in it makes all the difference. This little moment was created just to bring a warm smile to your face today. 💕',
+        photos: [],
+        theme: 'love',
+        status: 'published',
+        created_at: new Date().toISOString()
+      };
+    }
+
+    // 1. If Supabase is active and ID is a valid UUID, query DB
+    if (this.isReady && this.client && this.isValidUuid(publicId)) {
       try {
         const { data, error } = await this.client
           .from('experiences')
@@ -390,8 +424,8 @@ class DearlyDatabaseService {
     const cleanName = (recipientName || '').trim().substring(0, 100);
     const cleanType = responseType || 'love_back';
 
-    // 1. If Supabase is ready, call the secure RPC function
-    if (this.isReady && this.client) {
+    // 1. If Supabase is ready and ID is a valid UUID, call the secure RPC function
+    if (this.isReady && this.client && this.isValidUuid(publicId)) {
       try {
         const { data, error } = await this.client.rpc('submit_experience_response', {
           p_public_id: publicId,

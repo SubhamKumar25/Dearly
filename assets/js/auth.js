@@ -11,10 +11,18 @@ class DearlyAuthService {
     this.unreadNotificationsCount = 0;
     this.listeners = [];
     this.initialized = false;
+    this._initPromise = null;
     this.init();
   }
 
-  async init() {
+  init() {
+    if (!this._initPromise) {
+      this._initPromise = this._performInit();
+    }
+    return this._initPromise;
+  }
+
+  async _performInit() {
     await window.dearlyDB?.ensureReady?.();
     const client = window.dearlyDB?.client;
 
@@ -24,10 +32,19 @@ class DearlyAuthService {
         this.session = data?.session || null;
         this.user = data?.session?.user || null;
 
+        if (this.user) {
+          this.claimLocalExperiences(this.user.id);
+        }
+
         // Listen to auth state transitions
         client.auth.onAuthStateChange(async (event, session) => {
           this.session = session;
           this.user = session?.user || null;
+
+          if (this.user && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
+            this.claimLocalExperiences(this.user.id);
+          }
+
           this.notifyListeners(event, session);
           this.updateNavbars();
           if (this.user) {
@@ -54,6 +71,7 @@ class DearlyAuthService {
 
     this.initialized = true;
     this.updateNavbars();
+    return this.user;
   }
 
   onAuthStateChange(callback) {
@@ -171,12 +189,14 @@ class DearlyAuthService {
   }
 
   async signInWithGoogle(redirectTarget = 'dashboard.html') {
+    await this.init();
     await window.dearlyDB?.ensureReady?.();
     const client = window.dearlyDB?.client;
 
     if (client) {
       // Build absolute callback URL back to auth.html preserving redirectTarget
-      const callbackUrl = new URL('auth.html', window.location.href);
+      const baseOrigin = window.location.origin;
+      const callbackUrl = new URL('auth.html', baseOrigin.endsWith('/') ? baseOrigin : baseOrigin + '/');
       if (redirectTarget) {
         callbackUrl.searchParams.set('redirect', redirectTarget);
       }
@@ -405,6 +425,30 @@ class DearlyAuthService {
         <a href="#experiences" class="btn btn-primary btn-sm">Create Gift ✨</a>
         ${toggleHtml}
       `;
+    }
+
+    // Sync desktop and mobile dashboard links across pages
+    const navDashboardLi = document.getElementById('nav-dashboard-li');
+    if (navDashboardLi) {
+      navDashboardLi.style.display = this.user ? 'list-item' : 'none';
+    }
+
+    const drawerDashboardLink = document.getElementById('drawer-dashboard-link');
+    if (drawerDashboardLink) {
+      drawerDashboardLink.style.display = this.user ? 'block' : 'none';
+    }
+
+    const drawerLoginLink = document.getElementById('drawer-login-link');
+    if (drawerLoginLink) {
+      if (this.user) {
+        drawerLoginLink.textContent = `👤 ${this.getUserName()} (Log Out)`;
+        drawerLoginLink.href = 'javascript:void(0)';
+        drawerLoginLink.onclick = () => this.signOut();
+      } else {
+        drawerLoginLink.textContent = '👤 Log In / Sign Up';
+        drawerLoginLink.href = 'auth.html';
+        drawerLoginLink.onclick = null;
+      }
     }
 
     // Re-bind toggle if it was re-rendered

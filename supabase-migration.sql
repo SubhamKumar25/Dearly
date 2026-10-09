@@ -60,7 +60,7 @@ CREATE POLICY "Creators can update their own drafts"
     ON public.experiences
     FOR UPDATE
     TO authenticated
-    USING (auth.uid() = creator_id)
+    USING (auth.uid() = creator_id OR creator_id IS NULL)
     WITH CHECK (auth.uid() = creator_id);
 
 DROP POLICY IF EXISTS "Creators can delete their own experiences" ON public.experiences;

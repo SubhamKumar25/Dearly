@@ -48,6 +48,15 @@
       <!-- Alert Box -->
       <div class="auth-alert" id="auth-alert"></div>
 
+      <!-- OAUTH RETURNING LOADER (Shown during Google token exchange) -->
+      <div id="auth-oauth-loading" style="display: none; text-align: center; padding: 32px 12px;">
+        <div style="font-size: 3rem; margin-bottom: 14px;" class="animate-heartbeat">✨</div>
+        <h2 style="font-size: 1.35rem; margin-bottom: 8px;">Completing Google Sign-In...</h2>
+        <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 0;">
+          Securing your session and loading your moments 💕
+        </p>
+      </div>
+
       <!-- LOGIN FORM -->
       <form id="form-login" style="display: block;">
         <div class="form-group">
@@ -198,6 +207,23 @@
         showAlert('error', friendly);
       }
 
+      // Check if user is returning from OAuth callback flow
+      const isOAuthReturning = (
+        (window.location.search && (window.location.search.includes('code=') || window.location.search.includes('access_token='))) ||
+        (window.location.hash && window.location.hash.includes('access_token='))
+      );
+
+      const oauthLoader = document.getElementById('auth-oauth-loading');
+      if (isOAuthReturning && !errorDescription && !errorMsg) {
+        if (oauthLoader) oauthLoader.style.display = 'block';
+        const formLogin = document.getElementById('form-login');
+        const formSignup = document.getElementById('form-signup');
+        const tabsBar = document.getElementById('auth-tabs-bar');
+        if (formLogin) formLogin.style.display = 'none';
+        if (formSignup) formSignup.style.display = 'none';
+        if (tabsBar) tabsBar.style.display = 'none';
+      }
+
       // Check if user is already logged in (including returning from Google OAuth)
       await window.dearlyAuth.init();
       if (window.dearlyAuth.getUser() && initialMode !== 'update-password' && !window.location.hash.includes('type=recovery')) {
@@ -208,6 +234,7 @@
       // Listen for async sign in (e.g. PKCE OAuth return code exchange)
       window.dearlyAuth.onAuthStateChange((event, session) => {
         if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user && initialMode !== 'update-password' && !window.location.hash.includes('type=recovery')) {
+          if (oauthLoader) oauthLoader.style.display = 'none';
           showAlert('success', 'Logged in successfully! Redirecting...');
           if (window.dearlyAudio) window.dearlyAudio.playCelebration();
           setTimeout(() => {
@@ -227,7 +254,7 @@
       // Check for Supabase recovery token in URL hash
       if (window.location.hash && window.location.hash.includes('type=recovery')) {
         switchTab('update-pass');
-      } else {
+      } else if (!isOAuthReturning || errorDescription || errorMsg) {
         switchTab(initialMode);
       }
 
@@ -252,6 +279,7 @@
 
       function switchTab(mode) {
         clearAlert();
+        if (oauthLoader) oauthLoader.style.display = 'none';
         tabBtns.forEach(b => b.classList.remove('active'));
 
         const formLogin = document.getElementById('form-login');

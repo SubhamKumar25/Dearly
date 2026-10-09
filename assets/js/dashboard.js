@@ -17,6 +17,23 @@ class DearlyDashboardController {
     await window.dearlyAuth.init();
     this.user = window.dearlyAuth.getUser();
 
+    // If OAuth hash/code is present in URL, allow Supabase session exchange to settle
+    if (!this.user && (
+      (window.location.search && (window.location.search.includes('code=') || window.location.search.includes('access_token='))) ||
+      (window.location.hash && window.location.hash.includes('access_token='))
+    )) {
+      await new Promise((resolve) => {
+        const timeout = setTimeout(resolve, 2500);
+        window.dearlyAuth.onAuthStateChange((event, session) => {
+          if (session?.user) {
+            clearTimeout(timeout);
+            resolve();
+          }
+        });
+      });
+      this.user = window.dearlyAuth.getUser();
+    }
+
     if (!this.user) {
       window.location.href = 'auth.html?redirect=dashboard.html';
       return;
@@ -146,7 +163,8 @@ class DearlyDashboardController {
       return;
     }
 
-    const base = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+    const baseOrigin = window.location.origin;
+    const base = baseOrigin.endsWith('/') ? baseOrigin.slice(0, -1) : baseOrigin;
 
     let html = '<div class="surprises-grid">';
     this.experiences.forEach(exp => {
