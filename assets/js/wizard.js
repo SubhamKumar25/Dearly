@@ -572,11 +572,56 @@ class DearlyWizard {
     this.activeLang = 'en';
   }
 
-  init() {
+  async init() {
+    // 0. Protect route: strictly require authentication for creating a gift
+    if (window.dearlyAuth) {
+      await window.dearlyAuth.init();
+      let user = window.dearlyAuth.getUser();
+
+      // If returning from OAuth redirect, allow Supabase session exchange to settle
+      if (!user && (
+        (window.location.search && (window.location.search.includes('code=') || window.location.search.includes('access_token='))) ||
+        (window.location.hash && window.location.hash.includes('access_token='))
+      )) {
+        await new Promise((resolve) => {
+          const timeout = setTimeout(resolve, 2000);
+          window.dearlyAuth.onAuthStateChange((event, session) => {
+            if (session?.user) {
+              clearTimeout(timeout);
+              resolve();
+            }
+          });
+        });
+        user = window.dearlyAuth.getUser();
+      }
+
+      if (!user) {
+        // Read requested category to preserve it
+        const urlParams = new URLSearchParams(window.location.search);
+        const requestedType = (urlParams.get('type') || 'love').toLowerCase();
+        let targetRedirect = `create.html?type=${encodeURIComponent(requestedType)}`;
+
+        // Preserve from_gift if visitor arrived from a recipient link
+        const fromGift = urlParams.get('from_gift') || sessionStorage.getItem('dearly_from_gift_url');
+        if (fromGift) {
+          targetRedirect += `&from_gift=${encodeURIComponent(fromGift)}`;
+        }
+
+        window.location.href = `auth.html?redirect=${encodeURIComponent(targetRedirect)}`;
+        return;
+      }
+    }
+
     // 1. Read category from query param
     const urlParams = new URLSearchParams(window.location.search);
     const requestedType = (urlParams.get('type') || '').toLowerCase();
     this.type = WIZARD_CONFIG[requestedType] ? requestedType : 'love';
+
+    // 1b. Check if user arrived from a shared recipient gift link
+    this.fromGiftUrl = urlParams.get('from_gift') || sessionStorage.getItem('dearly_from_gift_url') || null;
+    if (this.fromGiftUrl) {
+      sessionStorage.setItem('dearly_from_gift_url', this.fromGiftUrl);
+    }
 
     // 2. Load draft state from sessionStorage
     this.loadState();
@@ -638,9 +683,22 @@ class DearlyWizard {
       this.btnNextEl.textContent = stepData.btnNext || 'Continue →';
     }
 
+    // Return banner if visitor came from a shared gift
+    let returnBannerHtml = '';
+    if (this.fromGiftUrl) {
+      returnBannerHtml = `
+        <div style="margin-bottom: 14px;">
+          <a href="${this.escapeHtml(this.fromGiftUrl)}" class="btn-return-gift" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 600; color: var(--color-primary); background: var(--color-primary-subtle); border: 1px solid var(--color-love-border); padding: 5px 12px; border-radius: var(--radius-full); text-decoration: none;">
+            💌 ← Return to received gift
+          </a>
+        </div>
+      `;
+    }
+
     // Build Step HTML
     let html = `
       <div class="animate-step-enter" id="current-step-container">
+        ${returnBannerHtml}
         <h2 style="font-size: clamp(1.5rem, 3.5vw, 2rem); margin-bottom: 6px; letter-spacing: -0.02em;">${stepData.title}</h2>
         <p style="color: var(--text-muted); font-size: 0.98rem; margin-bottom: var(--space-xl);">${stepData.subtitle}</p>
         <div class="step-fields">
@@ -1083,8 +1141,13 @@ class DearlyWizard {
 
     stepData.fields.forEach((field) => {
       if (field.required) {
-        const val = this.formData[field.id];
         const el = document.getElementById(field.id);
+        const val = (this.formData[field.id] !== undefined && this.formData[field.id] !== '')
+          ? this.formData[field.id]
+          : (el ? el.value : '');
+        if (el && val && this.formData[field.id] === undefined) {
+          this.formData[field.id] = val;
+        }
 
         if (!val || String(val).trim() === '') {
           isValid = false;
@@ -1257,18 +1320,25 @@ class DearlyWizard {
     container.appendChild(toast);
 
     setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(10px)';
-      toast.style.transition = 'all 0.3s ease';
       setTimeout(() => toast.remove(), 300);
     }, 3200);
+  }
+
+  escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 }
 
 // Global initialization
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   if (document.getElementById('wizard-card-body')) {
     window.wizardInstance = new DearlyWizard();
-    window.wizardInstance.init();
+    await window.wizardInstance.init();
   }
 });

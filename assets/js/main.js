@@ -90,6 +90,19 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.body.classList.contains('home-page')) {
     spawnHomeFloatingParticles();
   }
+
+  // 5. Intercept gift-creation entry points for unauthenticated visitors
+  const creationLinks = document.querySelectorAll('.category-card, a[href*="create.html"]');
+  creationLinks.forEach((link) => {
+    link.addEventListener('click', (e) => {
+      const user = window.dearlyAuth?.getUser?.();
+      if (!user) {
+        e.preventDefault();
+        const targetHref = link.getAttribute('href') || 'create.html?type=love';
+        window.location.href = `auth.html?redirect=${encodeURIComponent(targetHref)}`;
+      }
+    });
+  });
 });
 
 function spawnHomeFloatingParticles() {

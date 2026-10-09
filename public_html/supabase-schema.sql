@@ -42,16 +42,18 @@ CREATE POLICY "Public can view published experiences"
     ON public.experiences
     FOR SELECT
     TO anon, authenticated
-    USING (status = 'published');
+    USING (
+        status = 'published'
+        OR (auth.uid() IS NOT NULL AND auth.uid() = creator_id)
+    );
 
 DROP POLICY IF EXISTS "Users can insert their own experiences" ON public.experiences;
 CREATE POLICY "Users can insert their own experiences"
     ON public.experiences
     FOR INSERT
-    TO anon, authenticated
+    TO authenticated
     WITH CHECK (
-        (auth.uid() IS NOT NULL AND (creator_id = auth.uid() OR creator_id IS NULL))
-        OR (auth.uid() IS NULL)
+        auth.uid() IS NOT NULL AND creator_id = auth.uid()
     );
 
 DROP POLICY IF EXISTS "Creators can update their own drafts" ON public.experiences;
@@ -294,7 +296,7 @@ DROP POLICY IF EXISTS "Users can upload experience photos" ON storage.objects;
 CREATE POLICY "Users can upload experience photos"
     ON storage.objects
     FOR INSERT
-    TO anon, authenticated
+    TO authenticated
     WITH CHECK (
         bucket_id = 'experience-photos'
         AND (storage.foldername(name))[1] = 'photos'

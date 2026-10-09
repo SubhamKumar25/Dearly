@@ -214,19 +214,34 @@ class DearlyDatabaseService {
       finalPhotoUrls = await this.uploadPhotos(experienceData.photos, publicId);
     }
 
-    // 2. Identify authenticated creator
+    // 2. Identify authenticated creator (strictly enforce authentication)
     let creatorId = null;
     if (this.isReady && this.client) {
       try {
         const { data: userData } = await this.client.auth.getUser();
         if (userData?.user?.id) {
           creatorId = userData.user.id;
-        } else if (this.currentUser?.id) {
-          creatorId = this.currentUser.id;
         }
       } catch (e) {
         console.warn('Could not read user for creator_id:', e);
       }
+
+      if (!creatorId) {
+        return {
+          success: false,
+          error: 'Authentication required. Please log in or sign up to create and publish gifts.'
+        };
+      }
+    } else {
+      // Local demo mode (offline / without Supabase credentials)
+      const demoUser = window.dearlyAuth?.getUser?.();
+      if (!demoUser) {
+        return {
+          success: false,
+          error: 'Authentication required. Please log in to create and publish gifts.'
+        };
+      }
+      creatorId = demoUser.id;
     }
 
     // 3. Prepare payload matching experiences schema
@@ -540,6 +555,23 @@ class DearlyDatabaseService {
     await this.ensureReady();
     if (!userId) return [];
 
+    // Security: verify requested userId matches current authenticated user
+    let currentAuthId = null;
+    if (this.isReady && this.client) {
+      try {
+        const { data: userData } = await this.client.auth.getUser();
+        currentAuthId = userData?.user?.id;
+      } catch (e) {}
+    } else {
+      const demoUser = window.dearlyAuth?.getUser?.();
+      currentAuthId = demoUser?.id;
+    }
+
+    if (!currentAuthId || currentAuthId !== userId) {
+      console.warn('Unauthorized attempt to read other user experiences.');
+      return [];
+    }
+
     if (this.isReady && this.client) {
       try {
         // Query experiences by creator_id
@@ -601,6 +633,23 @@ class DearlyDatabaseService {
   async getUserNotifications(userId) {
     await this.ensureReady();
     if (!userId) return [];
+
+    // Security: verify requested userId matches current authenticated user
+    let currentAuthId = null;
+    if (this.isReady && this.client) {
+      try {
+        const { data: userData } = await this.client.auth.getUser();
+        currentAuthId = userData?.user?.id;
+      } catch (e) {}
+    } else {
+      const demoUser = window.dearlyAuth?.getUser?.();
+      currentAuthId = demoUser?.id;
+    }
+
+    if (!currentAuthId || currentAuthId !== userId) {
+      console.warn('Unauthorized attempt to read other user notifications.');
+      return [];
+    }
 
     if (this.isReady && this.client) {
       try {

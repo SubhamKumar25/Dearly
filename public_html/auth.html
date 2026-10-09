@@ -189,6 +189,21 @@
       const urlParams = new URLSearchParams(window.location.search);
       const redirectTarget = urlParams.get('redirect') || 'dashboard.html';
       const initialMode = urlParams.get('mode') || (urlParams.get('tab') === 'signup' ? 'signup' : 'login');
+      const fromGift = urlParams.get('from_gift');
+
+      const subtitleEl = document.getElementById('auth-subtitle');
+      if (subtitleEl && redirectTarget.includes('create.html')) {
+        subtitleEl.textContent = 'Log in or sign up to craft and personalize your digital gift ✨';
+      }
+
+      if (fromGift) {
+        const alertEl = document.getElementById('auth-alert');
+        if (alertEl) {
+          alertEl.className = 'auth-alert info';
+          alertEl.style.display = 'block';
+          alertEl.innerHTML = `💌 <strong>Creating your own gift?</strong> Sign up or log in to begin. Your received gift will stay safe and accessible!`;
+        }
+      }
 
       // Check for OAuth error in URL hash or query params
       const hash = window.location.hash ? window.location.hash.substring(1) : '';
@@ -415,7 +430,13 @@
 
         try {
           const res = await window.dearlyAuth.signUp({ name, email, password: pass });
-          showAlert('success', 'Account created! Redirecting to your dashboard...');
+          if (res && res.user && !res.session) {
+            showAlert('info', 'Account created! Please check your email to confirm your account, then log in to continue.');
+            btn.disabled = false;
+            btn.textContent = 'Create Free Account 💌';
+            return;
+          }
+          showAlert('success', 'Account created! Continuing to your destination...');
           if (window.dearlyAudio) window.dearlyAudio.playCelebration();
           setTimeout(() => {
             window.location.href = redirectTarget;

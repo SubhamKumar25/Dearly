@@ -56,6 +56,36 @@ class DearlyPreviewController {
   }
 
   async init() {
+    // 0. Protect route: strictly require authentication
+    if (window.dearlyAuth) {
+      await window.dearlyAuth.init();
+      let user = window.dearlyAuth.getUser();
+
+      // If returning from OAuth redirect, allow Supabase session exchange to settle
+      if (!user && (
+        (window.location.search && (window.location.search.includes('code=') || window.location.search.includes('access_token='))) ||
+        (window.location.hash && window.location.hash.includes('access_token='))
+      )) {
+        await new Promise((resolve) => {
+          const timeout = setTimeout(resolve, 2000);
+          window.dearlyAuth.onAuthStateChange((event, session) => {
+            if (session?.user) {
+              clearTimeout(timeout);
+              resolve();
+            }
+          });
+        });
+        user = window.dearlyAuth.getUser();
+      }
+
+      if (!user) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const type = (urlParams.get('type') || 'love').toLowerCase();
+        window.location.href = `auth.html?redirect=${encodeURIComponent('preview.html?type=' + type)}`;
+        return;
+      }
+    }
+
     // 1. Retrieve preview data from sessionStorage
     const rawData = sessionStorage.getItem('dearly_preview_data');
     if (rawData) {
@@ -121,6 +151,19 @@ class DearlyPreviewController {
 
   async publishExperience() {
     if (this.isPublishing) return;
+
+    // Strictly require authentication before publishing
+    if (window.dearlyAuth) {
+      await window.dearlyAuth.init();
+      const user = window.dearlyAuth.getUser();
+      if (!user) {
+        alert('Please log in or create an account to publish and save your gift!');
+        const returnUrl = window.location.pathname.split('/').pop() + window.location.search;
+        window.location.href = `auth.html?redirect=${encodeURIComponent(returnUrl || 'preview.html')}`;
+        return;
+      }
+    }
+
     this.isPublishing = true;
 
     const publishButtons = document.querySelectorAll('#btn-preview-publish, .btn-preview-publish');

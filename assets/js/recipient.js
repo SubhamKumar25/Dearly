@@ -446,7 +446,7 @@ class DearlyStoryPlayer {
           <button type="button" class="btn btn-secondary btn-sm" id="btn-restart-story">
             ↺ Replay Experience
           </button>
-          <a href="index.html" class="btn btn-ghost btn-sm" style="font-size: 0.86rem; color: var(--text-muted);">
+          <a href="create.html?type=love" class="btn btn-ghost btn-sm" id="btn-recipient-create-gift" style="font-size: 0.86rem; color: var(--text-muted);">
             Create a DEARLY for someone 💌
           </a>
         </div>
@@ -543,7 +543,24 @@ class DearlyStoryPlayer {
       });
     }
 
-    // 6. Two-Way Response Handlers
+    // 6. Reveal Screen Navigation (Create)
+    const btnRecipientCreate = document.getElementById('btn-recipient-create-gift');
+    if (btnRecipientCreate) {
+      btnRecipientCreate.addEventListener('click', (e) => {
+        e.preventDefault();
+        const currentGiftUrl = window.location.href;
+        sessionStorage.setItem('dearly_from_gift_url', currentGiftUrl);
+        const user = window.dearlyAuth?.getUser?.();
+        const targetUrl = `create.html?type=love&from_gift=${encodeURIComponent(currentGiftUrl)}`;
+        if (user) {
+          window.location.href = targetUrl;
+        } else {
+          window.location.href = `auth.html?redirect=${encodeURIComponent(targetUrl)}&from_gift=${encodeURIComponent(currentGiftUrl)}`;
+        }
+      });
+    }
+
+    // 7. Two-Way Response Handlers
     this.bindLoveResponseEvents();
   }
 
