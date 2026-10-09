@@ -166,7 +166,6 @@ const WIZARD_CONFIG = {
             id: 'letter',
             label: 'Longer Letter or Special Note (Optional)',
             placeholder: "Pour your heart out here. Take all the space you need...",
-            maxlength: 2500,
             required: false,
             minHeight: '140px'
           }
@@ -296,7 +295,6 @@ const WIZARD_CONFIG = {
             id: 'letter',
             label: 'Sincere Letter or Reconciliation Note',
             placeholder: "Take your time to write an honest, genuine message...",
-            maxlength: 2500,
             required: false,
             minHeight: '140px'
           }
@@ -410,7 +408,6 @@ const WIZARD_CONFIG = {
             id: 'letter',
             label: 'Longer Birthday Letter (Optional)',
             placeholder: "Write a longer note celebrating how much they mean to you...",
-            maxlength: 2500,
             required: false,
             minHeight: '130px'
           }
@@ -485,7 +482,7 @@ const WIZARD_CONFIG = {
             id: 'msg_1',
             label: 'How you met or when you knew',
             placeholder: "e.g. The first time we sat together for coffee, three hours felt like five minutes.",
-            maxlength: 250,
+            maxlength: 220,
             required: true
           },
           {
@@ -493,7 +490,7 @@ const WIZARD_CONFIG = {
             id: 'msg_2',
             label: 'Your favourite memory together',
             placeholder: "e.g. That quiet evening under the stars when everything just clicked.",
-            maxlength: 250,
+            maxlength: 220,
             required: true
           },
           {
@@ -501,7 +498,7 @@ const WIZARD_CONFIG = {
             id: 'msg_3',
             label: 'What you love most about them',
             placeholder: "e.g. Your kindness, your laughter, and the way you make every place feel like home.",
-            maxlength: 250,
+            maxlength: 220,
             required: true
           }
         ],
@@ -538,7 +535,6 @@ const WIZARD_CONFIG = {
             id: 'letter',
             label: 'Your Proposal Letter',
             placeholder: "Write the words you want them to remember for the rest of your lives...",
-            maxlength: 2500,
             required: true,
             minHeight: '150px'
           }
@@ -573,7 +569,7 @@ class DearlyWizard {
     this.extraMessages = []; // Optional extra personal messages (up to 5)
     this.draftId = null; // Associated draft experience ID if editing an existing draft
     this.maxExtraMessages = 5;
-    this.extraMsgMaxChars = 180;
+    this.extraMsgMaxChars = 300;
   }
 
   // Count words helper (max 250 words for letters)
@@ -582,6 +578,22 @@ class DearlyWizard {
     const trimmed = text.trim();
     if (!trimmed) return 0;
     return trimmed.split(/\s+/).filter(Boolean).length;
+  }
+
+  // Synchronize active DOM inputs to internal state before any navigation or save
+  syncCurrentStepInputs() {
+    if (!this.cardEl) return;
+    const inputs = this.cardEl.querySelectorAll('input.form-input, textarea.form-textarea');
+    inputs.forEach((inp) => {
+      if (inp.classList.contains('extra-msg-textarea')) {
+        const idx = parseInt(inp.getAttribute('data-idx'), 10);
+        if (!isNaN(idx) && this.extraMessages) {
+          this.extraMessages[idx] = inp.value;
+        }
+      } else if (inp.id) {
+        this.formData[inp.id] = inp.value;
+      }
+    });
   }
 
   async init() {
@@ -782,7 +794,7 @@ class DearlyWizard {
           <div class="extra-message-card" data-idx="${idx}" style="background: var(--bg-surface-soft, #FFF5F7); border: 1px solid var(--border-light); border-radius: 12px; padding: 14px 16px; position: relative; transition: all 0.2s ease;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <span style="font-size: 0.84rem; font-weight: 700; color: var(--color-primary); display: flex; align-items: center; gap: 6px;">
-                💌 Personal Note #${idx + 1}
+                💌 Personal Message #${idx + 1}
               </span>
               <div style="display: flex; align-items: center; gap: 6px;">
                 <button type="button" class="btn-extra-msg-move btn-extra-msg-up" data-idx="${idx}" title="Move Up" ${idx === 0 ? 'disabled style="opacity:0.35; cursor:not-allowed; background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:2px 8px;"' : 'style="cursor:pointer; background:#fff; border:1px solid #cbd5e1; border-radius:4px; padding:2px 8px;"'}>
@@ -791,16 +803,16 @@ class DearlyWizard {
                 <button type="button" class="btn-extra-msg-move btn-extra-msg-down" data-idx="${idx}" title="Move Down" ${idx === messages.length - 1 ? 'disabled style="opacity:0.35; cursor:not-allowed; background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:2px 8px;"' : 'style="cursor:pointer; background:#fff; border:1px solid #cbd5e1; border-radius:4px; padding:2px 8px;"'}>
                   ↓
                 </button>
-                <button type="button" class="btn-extra-msg-remove" data-idx="${idx}" title="Remove Note" style="color: #EF4444; background: #fff; border: 1px solid #FCA5A5; font-size: 0.9rem; cursor: pointer; padding: 2px 8px; border-radius: 4px;">
+                <button type="button" class="btn-extra-msg-remove" data-idx="${idx}" title="Remove Message" style="color: #EF4444; background: #fff; border: 1px solid #FCA5A5; font-size: 0.9rem; cursor: pointer; padding: 2px 8px; border-radius: 4px;">
                   ✕
                 </button>
               </div>
             </div>
-            <textarea class="form-textarea extra-msg-textarea" data-idx="${idx}" maxlength="180" 
-                      placeholder="e.g. You make my ordinary days special, or: Remember our first chai together? ☕"
-                      style="min-height: 64px; font-size: 0.92rem; padding: 10px 12px; background: #FFFFFF; width: 100%; box-sizing: border-box;">${this.escapeHtml(msg)}</textarea>
+            <textarea class="form-textarea extra-msg-textarea" data-idx="${idx}" maxlength="300" 
+                      placeholder="Write an extra personal message or little memory here..."
+                      style="min-height: 68px; font-size: 0.92rem; padding: 10px 12px; background: #FFFFFF; width: 100%; box-sizing: border-box;">${this.escapeHtml(msg)}</textarea>
             <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
-              <span class="char-counter extra-msg-counter" id="extra-counter-${idx}" style="font-size: 0.78rem; color: var(--text-muted);">${chars} / 180 chars</span>
+              <span class="char-counter extra-msg-counter" id="extra-counter-${idx}" style="font-size: 0.78rem; color: var(--text-muted);">${chars} / 300 characters</span>
             </div>
           </div>
         `;
@@ -815,17 +827,21 @@ class DearlyWizard {
         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
           <div>
             <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 4px 0; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
-              ✨ Extra Personal Messages <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">(Optional • ${messages.length}/${this.maxExtraMessages})</span>
+              Add Extra Personal Messages 💌 <span style="font-size: 0.82rem; font-weight: 500; color: var(--text-muted);">(${messages.length}/${this.maxExtraMessages} added • Optional)</span>
             </h3>
-            <p style="font-size: 0.84rem; color: var(--text-muted); margin: 0;">
-              Add up to 5 surprise notes or little memories revealed along your story sequence.
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+              Add a few little messages to make your gift even more personal.
             </p>
           </div>
           ${canAddMore ? `
             <button type="button" class="btn btn-secondary btn-sm" id="btn-add-extra-msg" style="border-color: var(--color-primary); color: var(--color-primary); font-weight: 600;">
-              + Add a Personal Message
+              + Add Personal Message
             </button>
-          ` : ''}
+          ` : `
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-add-extra-msg" disabled style="opacity: 0.5; cursor: not-allowed; border-color: #cbd5e1; color: var(--text-muted); font-weight: 600;">
+              + Add Personal Message (Max reached)
+            </button>
+          `}
         </div>
         ${listHtml}
       </div>
@@ -1139,6 +1155,7 @@ class DearlyWizard {
     const btnAdd = this.cardEl.querySelector('#btn-add-extra-msg');
     if (btnAdd) {
       btnAdd.addEventListener('click', () => {
+        this.syncCurrentStepInputs();
         if (this.extraMessages.length < this.maxExtraMessages) {
           // Push a new empty message note
           this.extraMessages.push('');
@@ -1169,7 +1186,7 @@ class DearlyWizard {
       ta.addEventListener('input', () => {
         this.extraMessages[idx] = ta.value;
         if (counter) {
-          counter.textContent = `${ta.value.length} / 180 chars`;
+          counter.textContent = `${ta.value.length} / 300 characters`;
         }
       });
     });
@@ -1179,6 +1196,7 @@ class DearlyWizard {
     upBtns.forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        this.syncCurrentStepInputs();
         const idx = parseInt(btn.getAttribute('data-idx'), 10);
         if (idx > 0) {
           const temp = this.extraMessages[idx];
@@ -1196,6 +1214,7 @@ class DearlyWizard {
     downBtns.forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        this.syncCurrentStepInputs();
         const idx = parseInt(btn.getAttribute('data-idx'), 10);
         if (idx < this.extraMessages.length - 1) {
           const temp = this.extraMessages[idx];
@@ -1213,6 +1232,7 @@ class DearlyWizard {
     removeBtns.forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        this.syncCurrentStepInputs();
         const idx = parseInt(btn.getAttribute('data-idx'), 10);
         this.extraMessages.splice(idx, 1);
         this.saveState();
@@ -1367,6 +1387,7 @@ class DearlyWizard {
   }
 
   validateCurrentStep() {
+    this.syncCurrentStepInputs();
     const config = this.getConfig();
     const stepData = config.steps[this.currentStep - 1];
     let isValid = true;
@@ -1413,9 +1434,17 @@ class DearlyWizard {
       }
     }
 
+    // Check extra personal messages limit (max 300 chars each)
+    if (this.extraMessages && this.extraMessages.some(m => m && m.length > 300)) {
+      isValid = false;
+      this.showToast('Please keep each extra personal message under 300 characters 💌');
+    }
+
     if (!isValid) {
       if (!letterEl || this.countWords(letterEl.value) <= 250) {
-        this.showToast('Please fill in the required fields to continue 💌');
+        if (!this.extraMessages || !this.extraMessages.some(m => m && m.length > 300)) {
+          this.showToast('Please fill in the required fields to continue 💌');
+        }
       }
       if (firstInvalidEl) firstInvalidEl.focus();
     }
@@ -1424,6 +1453,7 @@ class DearlyWizard {
   }
 
   async nextStep() {
+    this.syncCurrentStepInputs();
     if (!this.validateCurrentStep()) return;
 
     this.saveState();
@@ -1442,6 +1472,7 @@ class DearlyWizard {
 
   prevStep() {
     if (this.currentStep > 1) {
+      this.syncCurrentStepInputs();
       this.saveState();
       this.currentStep--;
       if (window.dearlyAudio) window.dearlyAudio.playSlide();
@@ -1450,6 +1481,7 @@ class DearlyWizard {
   }
 
   async goToPreview() {
+    this.syncCurrentStepInputs();
     // Re-check letter word limit
     if (this.formData.letter) {
       const words = this.countWords(this.formData.letter);
@@ -1542,18 +1574,8 @@ class DearlyWizard {
       return false;
     }
 
-    // 2. Read current inputs from DOM into formData
-    if (this.cardEl) {
-      const inputs = this.cardEl.querySelectorAll('input.form-input, textarea.form-textarea');
-      inputs.forEach(inp => {
-        if (inp.id) this.formData[inp.id] = inp.value;
-      });
-      const extraTas = this.cardEl.querySelectorAll('.extra-msg-textarea');
-      extraTas.forEach(ta => {
-        const idx = parseInt(ta.getAttribute('data-idx'), 10);
-        this.extraMessages[idx] = ta.value;
-      });
-    }
+    // 2. Read current inputs from DOM into formData and extraMessages
+    this.syncCurrentStepInputs();
 
     // Check letter 250-word limit
     if (this.formData.letter) {

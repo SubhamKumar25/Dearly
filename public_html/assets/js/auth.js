@@ -39,7 +39,19 @@ class DearlyAuthService {
         // Listen to auth state transitions
         client.auth.onAuthStateChange(async (event, session) => {
           this.session = session;
-          this.user = session?.user || null;
+          if (session?.user) {
+            this.user = session.user;
+          } else if (event === 'SIGNED_OUT') {
+            this.user = null;
+            localStorage.removeItem('dearly_demo_user');
+          } else {
+            const savedDemoUser = localStorage.getItem('dearly_demo_user');
+            if (savedDemoUser) {
+              try { this.user = JSON.parse(savedDemoUser); } catch (e) { this.user = null; }
+            } else {
+              this.user = null;
+            }
+          }
 
           if (this.user && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
             this.claimLocalExperiences(this.user.id);
@@ -55,6 +67,14 @@ class DearlyAuthService {
         if (this.user) {
           this.fetchUnreadCount();
           this.setupRealtimeNotifications();
+        } else {
+          // Local demo user fallback if testing or demo mode
+          const savedDemoUser = localStorage.getItem('dearly_demo_user');
+          if (savedDemoUser) {
+            try {
+              this.user = JSON.parse(savedDemoUser);
+            } catch (e) {}
+          }
         }
       } catch (err) {
         console.warn('Auth session check note:', err.message);
@@ -94,7 +114,15 @@ class DearlyAuthService {
   }
 
   getUser() {
-    return this.user;
+    if (this.user) return this.user;
+    const savedDemoUser = localStorage.getItem('dearly_demo_user');
+    if (savedDemoUser) {
+      try {
+        this.user = JSON.parse(savedDemoUser);
+        return this.user;
+      } catch (e) {}
+    }
+    return null;
   }
 
   getUserName() {
