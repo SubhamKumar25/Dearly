@@ -293,6 +293,22 @@
     window.addEventListener('DOMContentLoaded', async () => {
       await window.dearlyAuth?.init?.();
       const user = window.dearlyAuth?.getUser();
+
+      // If returning to home page from OAuth redirect, forward to dashboard
+      if (window.location.hash.includes('access_token=') || window.location.search.includes('code=')) {
+        if (user) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+      }
+      window.dearlyAuth?.onAuthStateChange?.((event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+          if (window.location.hash.includes('access_token=') || window.location.search.includes('code=')) {
+            window.location.href = 'dashboard.html';
+          }
+        }
+      });
+
       const dashLi = document.getElementById('nav-dashboard-li');
       const drawerLogin = document.getElementById('drawer-login-link');
       const drawerDash = document.getElementById('drawer-dashboard-link');

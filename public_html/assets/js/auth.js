@@ -195,6 +195,10 @@ class DearlyAuthService {
       if (error) {
         throw new Error(this.mapAuthError(error.message));
       }
+
+      if (data && data.url) {
+        window.location.href = data.url;
+      }
       return data;
     } else {
       // Demo fallback when running without configured Supabase

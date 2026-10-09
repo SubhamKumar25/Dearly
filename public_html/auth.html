@@ -205,6 +205,17 @@
         return;
       }
 
+      // Listen for async sign in (e.g. PKCE OAuth return code exchange)
+      window.dearlyAuth.onAuthStateChange((event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user && initialMode !== 'update-password' && !window.location.hash.includes('type=recovery')) {
+          showAlert('success', 'Logged in successfully! Redirecting...');
+          if (window.dearlyAudio) window.dearlyAudio.playCelebration();
+          setTimeout(() => {
+            window.location.href = redirectTarget;
+          }, 400);
+        }
+      });
+
       // Check for Supabase recovery token in URL hash
       if (window.location.hash && window.location.hash.includes('type=recovery')) {
         switchTab('update-pass');
@@ -305,6 +316,10 @@
 
         try {
           const res = await window.dearlyAuth.signInWithGoogle(redirectTarget);
+          if (res && res.url) {
+            window.location.href = res.url;
+            return;
+          }
           if (res && res.user) {
             showAlert('success', 'Signed in with Google! Redirecting...');
             if (window.dearlyAudio) window.dearlyAudio.playCelebration();
@@ -313,7 +328,8 @@
             }, 600);
           }
         } catch (err) {
-          showAlert('error', err.message);
+          console.error('Google Sign-In Error:', err);
+          showAlert('error', err.message || 'Google sign-in could not be initiated.');
           googleBtns.forEach(b => {
             b.disabled = false;
             const txt = b.querySelector('.btn-google-text');
