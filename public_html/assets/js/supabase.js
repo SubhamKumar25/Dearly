@@ -1056,8 +1056,16 @@ class DearlyDatabaseService {
     if (!this.isReady || !this.client || !userId) return null;
 
     try {
+      const topic = `user-notifications-${userId}`;
+      if (typeof this.client.getChannels === 'function') {
+        const existing = this.client.getChannels().find(c => c.topic === `realtime:${topic}` || c.topic === topic);
+        if (existing && typeof this.client.removeChannel === 'function') {
+          this.client.removeChannel(existing);
+        }
+      }
+
       const channel = this.client
-        .channel(`user-notifications-${userId}`)
+        .channel(topic)
         .on(
           'postgres_changes',
           {
