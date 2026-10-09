@@ -324,6 +324,9 @@ ON CONFLICT (id) DO UPDATE SET
     file_size_limit = 5242880,
     allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 
+-- Explicitly ensure public visibility on experience-photos bucket
+UPDATE storage.buckets SET public = true WHERE id = 'experience-photos';
+
 DROP POLICY IF EXISTS "Public read for experience photos" ON storage.objects;
 CREATE POLICY "Public read for experience photos"
     ON storage.objects

@@ -1687,7 +1687,7 @@ class DearlyWizard {
         this.extraMessages = Array.isArray(data.extra_messages) ? [...data.extra_messages] : [];
         if (data.photos && Array.isArray(data.photos)) {
           this.uploadedPhotos = data.photos.map((p, idx) => ({
-            dataUrl: typeof p === 'string' ? p : (p.dataUrl || p.url || ''),
+            dataUrl: typeof p === 'string' ? p : (p.signedUrl || p.signedURL || p.url || p.dataUrl || p.publicUrl || ''),
             name: (typeof p === 'object' && p.name) ? p.name : `Memory ${idx + 1}`
           }));
         }

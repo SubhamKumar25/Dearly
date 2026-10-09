@@ -226,7 +226,7 @@
             isPreview: false,
             data: data
           });
-          player.init();
+          await player.init();
         } else {
           // If not found, show friendly message
           const dummyPlayer = new window.DearlyStoryPlayer({ container: container });

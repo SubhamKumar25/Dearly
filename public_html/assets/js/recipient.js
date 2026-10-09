@@ -17,11 +17,20 @@ class DearlyStoryPlayer {
     this.selectedReaction = '';
   }
 
-  init(data) {
+  async init(data) {
     if (data) this.data = data;
     if (!this.data) {
       this.renderNotFound();
       return;
+    }
+
+    // Ensure photo URLs (including Supabase Storage paths & private URLs) are resolved
+    if (this.data.photos && Array.isArray(this.data.photos) && window.dearlyDB?.resolvePhotoUrls) {
+      try {
+        this.data.photos = await window.dearlyDB.resolvePhotoUrls(this.data.photos);
+      } catch (err) {
+        console.warn('Photo resolution note in player:', err);
+      }
     }
 
     // Set Theme Class on Body
@@ -264,7 +273,7 @@ class DearlyStoryPlayer {
                  alt="Special memory ${idx + 1}" 
                  loading="eager"
                  onload="const sp=document.getElementById('spinner-photo-${idx}'); if(sp) sp.style.display='none'; this.classList.add('loaded');"
-                 onerror="this.onerror=null; const sp=document.getElementById('spinner-photo-${idx}'); if(sp) sp.style.display='none'; this.classList.add('error'); this.parentElement.innerHTML='<div class=\\'polaroid-fallback-card\\'><span style=\\'font-size:2rem;\\'>📸</span><span>Special Moment #${idx + 1}</span></div>';">
+                 onerror="console.warn('Memory photo load failed for item ${idx + 1}:', this.src); this.onerror=null; const sp=document.getElementById('spinner-photo-${idx}'); if(sp) sp.style.display='none'; this.classList.add('error'); this.parentElement.innerHTML='<div class=\\'polaroid-fallback-card\\'><span style=\\'font-size:2rem;\\'>📸</span><span>Special Moment #${idx + 1}</span></div>';">
           </div>
           <div class="polaroid-caption">Memory #${idx + 1} ✨</div>
         </div>
@@ -872,7 +881,7 @@ class DearlyStoryPlayer {
       return photo;
     }
     if (typeof photo === 'object') {
-      const direct = photo.url || photo.dataUrl || photo.src || photo.publicUrl;
+      const direct = photo.signedUrl || photo.signedURL || photo.url || photo.dataUrl || photo.src || photo.publicUrl;
       if (direct) return direct;
       if (photo.path && window.dearlyDB?.client) {
         const bucketName = window.DEARLY_CONFIG?.STORAGE_BUCKET || 'experience-photos';

@@ -106,13 +106,33 @@ class DearlyDatabaseService {
       const item = photoItems[i];
       if (!item) continue;
 
-      // 1. If it's already an existing HTTP/HTTPS public URL, preserve it
+      // 1. If it's already an existing HTTP/HTTPS URL, preserve it as a permanent public URL reference
+      let existingUrl = '';
       if (typeof item === 'string' && (item.startsWith('http://') || item.startsWith('https://'))) {
-        uploadedUrls.push(item);
-        continue;
+        existingUrl = item;
+      } else if (typeof item === 'object') {
+        const u = item.publicUrl || item.url || item.signedUrl || item.signedURL || item.src || '';
+        if (typeof u === 'string' && (u.startsWith('http://') || u.startsWith('https://'))) {
+          existingUrl = u;
+        }
       }
-      if (typeof item === 'object' && item.url && (item.url.startsWith('http://') || item.url.startsWith('https://'))) {
-        uploadedUrls.push(item.url);
+
+      if (existingUrl) {
+        // If it is a signed URL with temporary tokens, convert to permanent object public URL
+        if (existingUrl.includes('?token=') || existingUrl.includes('/object/sign/')) {
+          const storagePath = this.extractStoragePath(existingUrl, bucketName);
+          if (storagePath && this.client) {
+            const { data: pubData } = this.client.storage.from(bucketName).getPublicUrl(storagePath);
+            if (pubData && pubData.publicUrl) {
+              existingUrl = pubData.publicUrl;
+            } else {
+              existingUrl = existingUrl.split('?')[0];
+            }
+          } else {
+            existingUrl = existingUrl.split('?')[0];
+          }
+        }
+        uploadedUrls.push(existingUrl);
         continue;
       }
 
@@ -172,7 +192,7 @@ class DearlyDatabaseService {
             console.error(`Storage upload failed for photo #${i + 1}:`, error.message);
             // Fallback: If image upload was blocked, fall back to dataUrl if available
             const fallbackUrl = (typeof item === 'object' ? item.dataUrl : (typeof item === 'string' ? item : ''));
-            if (fallbackUrl && fallbackUrl.length < 500000) {
+            if (fallbackUrl && fallbackUrl.length < 2500000) {
               uploadedUrls.push(fallbackUrl);
             }
           } else {
@@ -405,8 +425,9 @@ class DearlyDatabaseService {
         if (error) {
           console.warn('Supabase query error:', error.message);
         } else if (data) {
-          // Normalize photos array
-          data.photos = this.normalizePhotosList(data.photos);
+          // Normalize photos and resolve working signed URLs for private storage buckets
+          const normalized = this.normalizePhotosList(data.photos);
+          data.photos = await this.resolvePhotoUrls(normalized);
           return data;
         }
       } catch (err) {
@@ -417,7 +438,8 @@ class DearlyDatabaseService {
     // 2. Check local demo storage
     const localData = this.getFromLocalDemo(publicId);
     if (localData) {
-      localData.photos = this.normalizePhotosList(localData.photos);
+      const normalized = this.normalizePhotosList(localData.photos);
+      localData.photos = await this.resolvePhotoUrls(normalized);
       return localData;
     }
 
@@ -440,7 +462,8 @@ class DearlyDatabaseService {
           .single();
 
         if (!error && data) {
-          data.photos = this.normalizePhotosList(data.photos);
+          const normalized = this.normalizePhotosList(data.photos);
+          data.photos = await this.resolvePhotoUrls(normalized);
           return data;
         }
       } catch (err) {
@@ -453,7 +476,8 @@ class DearlyDatabaseService {
     for (const key of Object.keys(store)) {
       if (store[key].id === experienceId || store[key].public_id === experienceId) {
         const localData = { ...store[key] };
-        localData.photos = this.normalizePhotosList(localData.photos);
+        const normalized = this.normalizePhotosList(localData.photos);
+        localData.photos = await this.resolvePhotoUrls(normalized);
         return localData;
       }
     }
@@ -500,6 +524,129 @@ class DearlyDatabaseService {
       }
       return null;
     }).filter(Boolean);
+  }
+
+  /**
+   * Helper: Extract relative storage path (e.g. "photos/...") from any URL or object
+   */
+  extractStoragePath(rawUrl, bucket = 'experience-photos') {
+    if (!rawUrl || typeof rawUrl !== 'string') return null;
+
+    // 1. If it's already a relative path like "photos/..."
+    if (rawUrl.startsWith('photos/')) return rawUrl;
+
+    // 2. If it's a full public URL like ".../storage/v1/object/public/experience-photos/photos/..."
+    const publicMarker = `/object/public/${bucket}/`;
+    if (rawUrl.includes(publicMarker)) {
+      return rawUrl.substring(rawUrl.indexOf(publicMarker) + publicMarker.length);
+    }
+
+    // 3. If it's a signed URL like ".../object/sign/experience-photos/photos/...?...token="
+    const signMarker = `/object/sign/${bucket}/`;
+    if (rawUrl.includes(signMarker)) {
+      const afterMarker = rawUrl.substring(rawUrl.indexOf(signMarker) + signMarker.length);
+      return afterMarker.split('?')[0];
+    }
+
+    // 4. If it's another variant containing bucket name and photos/
+    const bucketMarker = `/${bucket}/`;
+    if (rawUrl.includes(bucketMarker)) {
+      const after = rawUrl.substring(rawUrl.indexOf(bucketMarker) + bucketMarker.length);
+      return after.split('?')[0];
+    }
+
+    return null;
+  }
+
+  /**
+   * Resolve an array of photo items into working, authenticated URLs.
+   * Ensures private Supabase buckets generate valid signed URLs,
+   * while preserving data URLs and external links.
+   */
+  async resolvePhotoUrls(photosList) {
+    if (!photosList || !Array.isArray(photosList) || photosList.length === 0) {
+      return [];
+    }
+
+    const bucketName = window.DEARLY_CONFIG?.STORAGE_BUCKET || 'experience-photos';
+    const resolved = [];
+    const storagePathsToSign = [];
+    const storageIndices = [];
+
+    for (let i = 0; i < photosList.length; i++) {
+      const item = photosList[i];
+      if (!item) continue;
+
+      let rawStr = '';
+      if (typeof item === 'string') {
+        rawStr = item;
+      } else if (typeof item === 'object') {
+        rawStr = item.signedUrl || item.signedURL || item.url || item.dataUrl || item.src || item.publicUrl || item.path || '';
+      }
+
+      if (!rawStr) continue;
+
+      // Data URLs or external non-Supabase URLs are used as-is
+      if (rawStr.startsWith('data:image/') || (!rawStr.includes(bucketName) && !rawStr.startsWith('photos/'))) {
+        resolved.push(rawStr);
+        continue;
+      }
+
+      // Supabase Storage item: extract clean relative path
+      const storagePath = this.extractStoragePath(rawStr, bucketName);
+      if (storagePath && this.isReady && this.client) {
+        storageIndices.push(resolved.length);
+        resolved.push(rawStr); // Temporary fallback until signed
+        storagePathsToSign.push(storagePath);
+      } else {
+        resolved.push(rawStr);
+      }
+    }
+
+    // Batch sign storage paths with generous expiry (7 days = 604,800 seconds)
+    if (storagePathsToSign.length > 0 && this.isReady && this.client) {
+      try {
+        const { data: signedList, error } = await this.client.storage
+          .from(bucketName)
+          .createSignedUrls(storagePathsToSign, 604800);
+
+        if (!error && Array.isArray(signedList)) {
+          signedList.forEach((sItem, sIdx) => {
+            const signedUrl = sItem?.signedUrl || sItem?.signedURL;
+            if (signedUrl && !sItem.error) {
+              const targetIdx = storageIndices[sIdx];
+              if (targetIdx !== undefined) {
+                resolved[targetIdx] = signedUrl.startsWith('http') 
+                  ? signedUrl 
+                  : `${window.DEARLY_CONFIG?.SUPABASE_URL}/storage/v1${signedUrl}`;
+              }
+            }
+          });
+        } else {
+          // If batch sign fails, try individual signing
+          for (let k = 0; k < storagePathsToSign.length; k++) {
+            try {
+              const { data: singleSign } = await this.client.storage
+                .from(bucketName)
+                .createSignedUrl(storagePathsToSign[k], 604800);
+              const singleUrl = singleSign?.signedUrl || singleSign?.signedURL;
+              if (singleUrl) {
+                const targetIdx = storageIndices[k];
+                if (targetIdx !== undefined) {
+                  resolved[targetIdx] = singleUrl.startsWith('http')
+                    ? singleUrl
+                    : `${window.DEARLY_CONFIG?.SUPABASE_URL}/storage/v1${singleUrl}`;
+                }
+              }
+            } catch (singleErr) {}
+          }
+        }
+      } catch (signErr) {
+        console.warn('Could not generate signed photo URLs, falling back to public URLs:', signErr);
+      }
+    }
+
+    return resolved.filter(Boolean);
   }
 
   /**

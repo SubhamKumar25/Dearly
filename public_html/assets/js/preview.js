@@ -85,7 +85,7 @@ class DearlyPreviewController {
         isPreview: true,
         data: this.previewData
       });
-      this.player.init();
+      await this.player.init();
     }
 
     // 4. Bind Preview Buttons (Top and Bottom Docked Actions)
