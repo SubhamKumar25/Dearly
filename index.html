@@ -37,10 +37,12 @@
         <li><a href="#experiences" class="nav-link">Experiences</a></li>
         <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
         <li><a href="#faq" class="nav-link">FAQ</a></li>
+        <li id="nav-dashboard-li" style="display: none;"><a href="dashboard.html" class="nav-link" style="color: var(--color-primary); font-weight: 700;">My Surprises</a></li>
       </ul>
 
       <!-- Nav CTA & Mobile Toggle -->
       <div class="nav-actions">
+        <a href="auth.html" class="btn btn-ghost btn-sm" id="btn-nav-login">Log In</a>
         <a href="#experiences" class="btn btn-primary btn-sm">Create Something ✨</a>
         <button type="button" class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation menu">
           ☰
@@ -54,6 +56,8 @@
     <a href="#experiences" class="nav-link">Experiences</a>
     <a href="#how-it-works" class="nav-link">How It Works</a>
     <a href="#faq" class="nav-link">FAQ</a>
+    <a href="auth.html" class="nav-link" id="drawer-login-link">Log In / Sign Up</a>
+    <a href="dashboard.html" class="nav-link" id="drawer-dashboard-link" style="display: none; color: var(--color-primary); font-weight: 700;">My Surprises & Replies 💌</a>
     <a href="create.html?type=love" class="btn btn-primary" style="margin-top: 8px;">Create Something ✨</a>
   </div>
 
@@ -265,8 +269,28 @@
   </footer>
 
   <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/audio.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/supabase.js"></script>
+  <script src="assets/js/auth.js"></script>
   <script src="assets/js/main.js"></script>
+  <script>
+    // Sync mobile drawer auth links on page load
+    window.addEventListener('DOMContentLoaded', async () => {
+      await window.dearlyAuth?.init?.();
+      const user = window.dearlyAuth?.getUser();
+      const dashLi = document.getElementById('nav-dashboard-li');
+      const drawerLogin = document.getElementById('drawer-login-link');
+      const drawerDash = document.getElementById('drawer-dashboard-link');
+
+      if (user) {
+        if (dashLi) dashLi.style.display = 'block';
+        if (drawerLogin) drawerLogin.style.display = 'none';
+        if (drawerDash) drawerDash.style.display = 'block';
+      }
+    });
+  </script>
 </body>
 
 </html>

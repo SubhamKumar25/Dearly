@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEARLY — Sender Login & Sign Up</title>
+  <meta name="description" content="Log in or sign up to manage your personalized surprises, view replies, and receive notifications.">
+  <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body class="home-page">
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container nav-container">
+      <a href="index.html" class="logo-link" aria-label="DEARLY Home">
+        <img src="assets/images/logo.svg" alt="DEARLY Logo" class="logo-img">
+      </a>
+      <div class="nav-actions">
+        <a href="index.html" class="btn btn-ghost btn-sm">✕ Return to Home</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Auth Container -->
+  <main class="auth-wrapper">
+    <div class="auth-card" id="auth-main-card">
+      
+      <div class="text-center" style="margin-bottom: 24px;">
+        <span style="font-size: 2.4rem;">💌</span>
+        <h1 style="font-size: 1.6rem; margin-top: 10px; margin-bottom: 6px;" id="auth-title">
+          Welcome to DEARLY
+        </h1>
+        <p style="color: var(--text-muted); font-size: 0.92rem;" id="auth-subtitle">
+          Log in to see responses to your surprises and manage your gifts.
+        </p>
+      </div>
+
+      <!-- Auth Tabs -->
+      <div class="auth-tabs" id="auth-tabs-bar">
+        <button type="button" class="auth-tab-btn active" data-tab="login" id="tab-login">Log In</button>
+        <button type="button" class="auth-tab-btn" data-tab="signup" id="tab-signup">Sign Up</button>
+        <button type="button" class="auth-tab-btn" data-tab="forgot" id="tab-forgot">Reset</button>
+      </div>
+
+      <!-- Alert Box -->
+      <div class="auth-alert" id="auth-alert"></div>
+
+      <!-- LOGIN FORM -->
+      <form id="form-login" style="display: block;">
+        <div class="form-group">
+          <label class="form-label" for="login-email">Your Email</label>
+          <input type="email" id="login-email" class="form-input" placeholder="name@example.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <div class="form-label">
+            <span>Password</span>
+            <a href="javascript:void(0)" id="link-forgot-pass" style="font-size: 0.8rem; color: var(--color-primary); float: right;">Forgot password?</a>
+          </div>
+          <input type="password" id="login-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <div style="margin-top: 24px;">
+          <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="btn-login-submit">
+            Log In ✨
+          </button>
+        </div>
+      </form>
+
+      <!-- SIGNUP FORM -->
+      <form id="form-signup" style="display: none;">
+        <div class="form-group">
+          <label class="form-label" for="signup-name">Your Full Name</label>
+          <input type="text" id="signup-name" class="form-input" placeholder="e.g. Rahul Sharma" required autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="signup-email">Your Email</label>
+          <input type="email" id="signup-email" class="form-input" placeholder="name@example.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="signup-password">
+            <span>Password</span>
+            <span style="font-size: 0.78rem; color: var(--text-light); float: right;">Min 6 characters</span>
+          </label>
+          <input type="password" id="signup-password" class="form-input" placeholder="At least 6 characters" minlength="6" required autocomplete="new-password">
+        </div>
+        <div style="margin-top: 24px;">
+          <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="btn-signup-submit">
+            Create Free Account 💌
+          </button>
+        </div>
+      </form>
+
+      <!-- FORGOT PASSWORD FORM -->
+      <form id="form-forgot" style="display: none;">
+        <div class="form-group">
+          <label class="form-label" for="forgot-email">Account Email</label>
+          <input type="email" id="forgot-email" class="form-input" placeholder="name@example.com" required>
+        </div>
+        <div style="margin-top: 24px;">
+          <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="btn-forgot-submit">
+            Send Reset Link 📧
+          </button>
+        </div>
+      </form>
+
+      <!-- UPDATE NEW PASSWORD FORM (Triggered via recovery link) -->
+      <form id="form-update-pass" style="display: none;">
+        <div class="form-group">
+          <label class="form-label" for="new-password">New Password</label>
+          <input type="password" id="new-password" class="form-input" placeholder="Enter new password" minlength="6" required>
+        </div>
+        <div style="margin-top: 24px;">
+          <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="btn-update-pass-submit">
+            Update Password & Log In ✨
+          </button>
+        </div>
+      </form>
+
+      <div class="text-center" style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-light); font-size: 0.85rem; color: var(--text-muted);">
+        Looking to view a surprise someone sent you? <br>
+        <span style="color: var(--text-main);">No login needed! Just open the link they shared with you.</span>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/audio.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/supabase.js"></script>
+  <script src="assets/js/auth.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirectTarget = urlParams.get('redirect') || 'dashboard.html';
+      const initialMode = urlParams.get('mode') || (urlParams.get('tab') === 'signup' ? 'signup' : 'login');
+
+      // Check if user is already logged in
+      await window.dearlyAuth.init();
+      if (window.dearlyAuth.getUser() && initialMode !== 'update-password') {
+        window.location.href = redirectTarget;
+        return;
+      }
+
+      // Check for Supabase recovery token in URL hash
+      if (window.location.hash && window.location.hash.includes('type=recovery')) {
+        switchTab('update-pass');
+      } else {
+        switchTab(initialMode);
+      }
+
+      // Tab switcher
+      const tabBtns = document.querySelectorAll('.auth-tab-btn');
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          switchTab(btn.getAttribute('data-tab'));
+        });
+      });
+
+      const linkForgot = document.getElementById('link-forgot-pass');
+      if (linkForgot) {
+        linkForgot.addEventListener('click', () => switchTab('forgot'));
+      }
+
+      function switchTab(mode) {
+        clearAlert();
+        tabBtns.forEach(b => b.classList.remove('active'));
+
+        const formLogin = document.getElementById('form-login');
+        const formSignup = document.getElementById('form-signup');
+        const formForgot = document.getElementById('form-forgot');
+        const formUpdate = document.getElementById('form-update-pass');
+        const tabsBar = document.getElementById('auth-tabs-bar');
+        const title = document.getElementById('auth-title');
+        const subtitle = document.getElementById('auth-subtitle');
+
+        formLogin.style.display = 'none';
+        formSignup.style.display = 'none';
+        formForgot.style.display = 'none';
+        formUpdate.style.display = 'none';
+
+        if (mode === 'signup') {
+          formSignup.style.display = 'block';
+          document.getElementById('tab-signup').classList.add('active');
+          title.textContent = 'Create Sender Account';
+          subtitle.textContent = 'Keep track of all your gifts and receive warm responses.';
+        } else if (mode === 'forgot') {
+          formForgot.style.display = 'block';
+          document.getElementById('tab-forgot').classList.add('active');
+          title.textContent = 'Reset Password';
+          subtitle.textContent = 'Enter your email and we will send a password reset link.';
+        } else if (mode === 'update-pass' || mode === 'update-password') {
+          formUpdate.style.display = 'block';
+          tabsBar.style.display = 'none';
+          title.textContent = 'Choose New Password';
+          subtitle.textContent = 'Enter your new password below to regain access to your account.';
+        } else {
+          formLogin.style.display = 'block';
+          document.getElementById('tab-login').classList.add('active');
+          title.textContent = 'Welcome Back';
+          subtitle.textContent = 'Log in to see responses to your surprises and notifications.';
+        }
+      }
+
+      function showAlert(type, message) {
+        const alertEl = document.getElementById('auth-alert');
+        alertEl.className = `auth-alert ${type}`;
+        alertEl.textContent = message;
+      }
+
+      function clearAlert() {
+        const alertEl = document.getElementById('auth-alert');
+        alertEl.className = 'auth-alert';
+        alertEl.textContent = '';
+      }
+
+      // 1. Handle Login Submit
+      document.getElementById('form-login').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAlert();
+        const btn = document.getElementById('btn-login-submit');
+        const email = document.getElementById('login-email').value.trim();
+        const pass = document.getElementById('login-password').value;
+
+        btn.disabled = true;
+        btn.textContent = 'Logging in... ✨';
+
+        try {
+          await window.dearlyAuth.signIn({ email, password: pass });
+          showAlert('success', 'Logged in successfully! Redirecting...');
+          if (window.dearlyAudio) window.dearlyAudio.playCelebration();
+          setTimeout(() => {
+            window.location.href = redirectTarget;
+          }, 600);
+        } catch (err) {
+          showAlert('error', err.message);
+          btn.disabled = false;
+          btn.textContent = 'Log In ✨';
+        }
+      });
+
+      // 2. Handle Signup Submit
+      document.getElementById('form-signup').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAlert();
+        const btn = document.getElementById('btn-signup-submit');
+        const name = document.getElementById('signup-name').value.trim();
+        const email = document.getElementById('signup-email').value.trim();
+        const pass = document.getElementById('signup-password').value;
+
+        btn.disabled = true;
+        btn.textContent = 'Creating account... 💌';
+
+        try {
+          const res = await window.dearlyAuth.signUp({ name, email, password: pass });
+          showAlert('success', 'Account created! Redirecting to your dashboard...');
+          if (window.dearlyAudio) window.dearlyAudio.playCelebration();
+          setTimeout(() => {
+            window.location.href = redirectTarget;
+          }, 800);
+        } catch (err)
+        {
+          showAlert('error', err.message);
+          btn.disabled = false;
+          btn.textContent = 'Create Free Account 💌';
+        }
+      });
+
+      // 3. Handle Forgot Password Submit
+      document.getElementById('form-forgot').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAlert();
+        const btn = document.getElementById('btn-forgot-submit');
+        const email = document.getElementById('forgot-email').value.trim();
+
+        btn.disabled = true;
+        btn.textContent = 'Sending reset email... 📧';
+
+        try {
+          await window.dearlyAuth.resetPassword(email);
+          showAlert('success', 'Reset instructions sent! Please check your email inbox.');
+          btn.disabled = false;
+          btn.textContent = 'Send Reset Link 📧';
+        } catch (err) {
+          showAlert('error', err.message);
+          btn.disabled = false;
+          btn.textContent = 'Send Reset Link 📧';
+        }
+      });
+
+      // 4. Handle Update Password Submit
+      document.getElementById('form-update-pass').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAlert();
+        const btn = document.getElementById('btn-update-pass-submit');
+        const newPass = document.getElementById('new-password').value;
+
+        btn.disabled = true;
+        btn.textContent = 'Updating password... ✨';
+
+        try {
+          await window.dearlyAuth.updatePassword(newPass);
+          showAlert('success', 'Password updated successfully! Redirecting...');
+          if (window.dearlyAudio) window.dearlyAudio.playCelebration();
+          setTimeout(() => {
+            window.location.href = redirectTarget;
+          }, 800);
+        } catch (err) {
+          showAlert('error', err.message);
+          btn.disabled = false;
+          btn.textContent = 'Update Password & Log In ✨';
+        }
+      });
+
+    });
+  </script>
+</body>
+</html>

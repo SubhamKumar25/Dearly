@@ -1,5 +1,6 @@
 -- =============================================================================
--- DEARLY — Supabase PostgreSQL Schema & Security Policies
+-- DEARLY — Supabase PostgreSQL Schema & Security Policies (v2.0)
+-- Includes Experiences, Sender Auth, Two-Way Responses, Notifications & Storage
 -- Run this script in the Supabase SQL Editor (Dashboard -> SQL Editor -> New Query)
 -- =============================================================================
 
@@ -27,52 +28,48 @@ CREATE TABLE IF NOT EXISTS public.experiences (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- 3. Create index on public_id for fast recipient lookups
+-- Indexes for fast lookups
 CREATE INDEX IF NOT EXISTS idx_experiences_public_id ON public.experiences(public_id);
 CREATE INDEX IF NOT EXISTS idx_experiences_creator_id ON public.experiences(creator_id);
 CREATE INDEX IF NOT EXISTS idx_experiences_status ON public.experiences(status);
 
--- 4. Enable Row Level Security (RLS) on experiences table
+-- Enable RLS
 ALTER TABLE public.experiences ENABLE ROW LEVEL SECURITY;
 
--- 5. Row Level Security Policies
-
--- Policy 1: Public / Recipient can READ ONLY published experiences by public_id
--- (Restricted only to published gifts, prevents scraping all experiences)
+-- Experiences RLS Policies
+DROP POLICY IF EXISTS "Public can view published experiences" ON public.experiences;
 CREATE POLICY "Public can view published experiences"
     ON public.experiences
     FOR SELECT
     TO anon, authenticated
     USING (status = 'published');
 
--- Policy 2: Authenticated / Anonymous users can INSERT their own experiences
--- When Supabase Anonymous Auth is active, auth.uid() matches creator_id.
--- Also permits insertion if auth.uid() is null (with null creator_id) for zero-setup demo fallback.
+DROP POLICY IF EXISTS "Users can insert their own experiences" ON public.experiences;
 CREATE POLICY "Users can insert their own experiences"
     ON public.experiences
     FOR INSERT
     TO anon, authenticated
     WITH CHECK (
-        (auth.uid() IS NOT NULL AND creator_id = auth.uid())
-        OR (auth.uid() IS NULL AND creator_id IS NULL)
+        (auth.uid() IS NOT NULL AND (creator_id = auth.uid() OR creator_id IS NULL))
+        OR (auth.uid() IS NULL)
     );
 
--- Policy 3: Only the creator can UPDATE their own draft experiences
+DROP POLICY IF EXISTS "Creators can update their own drafts" ON public.experiences;
 CREATE POLICY "Creators can update their own drafts"
     ON public.experiences
     FOR UPDATE
     TO authenticated
-    USING (auth.uid() = creator_id AND status = 'draft')
+    USING (auth.uid() = creator_id)
     WITH CHECK (auth.uid() = creator_id);
 
--- Policy 4: Only the creator can DELETE their own experiences
+DROP POLICY IF EXISTS "Creators can delete their own experiences" ON public.experiences;
 CREATE POLICY "Creators can delete their own experiences"
     ON public.experiences
     FOR DELETE
     TO authenticated
     USING (auth.uid() = creator_id);
 
--- 6. Trigger to automatically update updated_at timestamp
+-- Trigger to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -87,11 +84,192 @@ CREATE TRIGGER set_experiences_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION public.handle_updated_at();
 
--- =============================================================================
--- STORAGE BUCKET CONFIGURATION FOR PHOTOS
--- =============================================================================
+-- 3. Create responses table (for Two-Way Love Response System)
+CREATE TABLE IF NOT EXISTS public.responses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    experience_id UUID NOT NULL REFERENCES public.experiences(id) ON DELETE CASCADE,
+    public_id UUID NOT NULL,
+    sender_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    recipient_name VARCHAR(100),
+    message TEXT,
+    response_type VARCHAR(50) NOT NULL DEFAULT 'love_back',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
 
--- Insert storage bucket for photos if it doesn't already exist
+CREATE INDEX IF NOT EXISTS idx_responses_experience_id ON public.responses(experience_id);
+CREATE INDEX IF NOT EXISTS idx_responses_public_id ON public.responses(public_id);
+CREATE INDEX IF NOT EXISTS idx_responses_sender_id ON public.responses(sender_id);
+CREATE INDEX IF NOT EXISTS idx_responses_created_at ON public.responses(created_at DESC);
+
+ALTER TABLE public.responses ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Creators can view responses to their surprises" ON public.responses;
+CREATE POLICY "Creators can view responses to their surprises"
+    ON public.responses
+    FOR SELECT
+    TO authenticated
+    USING (
+        auth.uid() = sender_id
+        OR auth.uid() IN (SELECT creator_id FROM public.experiences WHERE id = responses.experience_id)
+    );
+
+DROP POLICY IF EXISTS "Creators can delete responses to their surprises" ON public.responses;
+CREATE POLICY "Creators can delete responses to their surprises"
+    ON public.responses
+    FOR DELETE
+    TO authenticated
+    USING (
+        auth.uid() = sender_id
+        OR auth.uid() IN (SELECT creator_id FROM public.experiences WHERE id = responses.experience_id)
+    );
+
+-- 4. Create notifications table
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    experience_id UUID NOT NULL REFERENCES public.experiences(id) ON DELETE CASCADE,
+    response_id UUID REFERENCES public.responses(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL DEFAULT 'love_back',
+    title VARCHAR(200) NOT NULL,
+    message TEXT,
+    is_read BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON public.notifications(user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON public.notifications(created_at DESC);
+
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own notifications" ON public.notifications;
+CREATE POLICY "Users can view their own notifications"
+    ON public.notifications
+    FOR SELECT
+    TO authenticated
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own notifications" ON public.notifications;
+CREATE POLICY "Users can update their own notifications"
+    ON public.notifications
+    FOR UPDATE
+    TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own notifications" ON public.notifications;
+CREATE POLICY "Users can delete their own notifications"
+    ON public.notifications
+    FOR DELETE
+    TO authenticated
+    USING (auth.uid() = user_id);
+
+-- 5. Secure Recipient Response Submission RPC (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.submit_experience_response(
+    p_public_id UUID,
+    p_message TEXT DEFAULT NULL,
+    p_recipient_name TEXT DEFAULT NULL,
+    p_response_type TEXT DEFAULT 'love_back'
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_experience RECORD;
+    v_response_id UUID;
+    v_recipient_display VARCHAR(100);
+    v_notification_title VARCHAR(200);
+    v_clean_message TEXT;
+    v_type VARCHAR(50);
+BEGIN
+    SELECT id, creator_id, sender_name, recipient_name, type
+    INTO v_experience
+    FROM public.experiences
+    WHERE public_id = p_public_id AND status = 'published';
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'Experience not found or is not published.'
+        );
+    END IF;
+
+    v_clean_message := NULLIF(TRIM(p_message), '');
+    IF v_clean_message IS NOT NULL AND LENGTH(v_clean_message) > 1000 THEN
+        v_clean_message := SUBSTRING(v_clean_message FROM 1 FOR 1000);
+    END IF;
+
+    v_recipient_display := COALESCE(NULLIF(TRIM(p_recipient_name), ''), v_experience.recipient_name, 'Someone');
+    IF LENGTH(v_recipient_display) > 100 THEN
+        v_recipient_display := SUBSTRING(v_recipient_display FROM 1 FOR 100);
+    END IF;
+
+    v_type := COALESCE(NULLIF(TRIM(p_response_type), ''), 'love_back');
+    IF LENGTH(v_type) > 50 THEN
+        v_type := 'love_back';
+    END IF;
+
+    INSERT INTO public.responses (
+        experience_id,
+        public_id,
+        sender_id,
+        recipient_name,
+        message,
+        response_type
+    ) VALUES (
+        v_experience.id,
+        p_public_id,
+        v_experience.creator_id,
+        v_recipient_display,
+        v_clean_message,
+        v_type
+    )
+    RETURNING id INTO v_response_id;
+
+    IF v_experience.creator_id IS NOT NULL THEN
+        IF v_type = 'forgive' THEN
+            v_notification_title := v_recipient_display || ' sent forgiveness back to you! 🕊️';
+        ELSEIF v_type = 'yes' THEN
+            v_notification_title := v_recipient_display || ' said YES to your proposal! 💍💖';
+        ELSEIF v_type = 'wish' THEN
+            v_notification_title := v_recipient_display || ' made a wish and thanked you! 🎂';
+        ELSE
+            v_notification_title := v_recipient_display || ' sent love back to you! 💕';
+        END IF;
+
+        INSERT INTO public.notifications (
+            user_id,
+            experience_id,
+            response_id,
+            type,
+            title,
+            message,
+            is_read
+        ) VALUES (
+            v_experience.creator_id,
+            v_experience.id,
+            v_response_id,
+            v_type,
+            v_notification_title,
+            v_clean_message,
+            false
+        );
+    END IF;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'response_id', v_response_id,
+        'recipient_name', v_recipient_display,
+        'type', v_type
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.submit_experience_response(UUID, TEXT, TEXT, TEXT) TO anon, authenticated;
+
+-- 6. Storage Bucket Configuration (Idempotent)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
     'experience-photos',
@@ -105,9 +283,6 @@ ON CONFLICT (id) DO UPDATE SET
     file_size_limit = 5242880,
     allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 
--- Storage RLS Policies (Note: storage.objects already has RLS enabled by default)
-
--- 1. Public can view/download photos in the experience-photos bucket
 DROP POLICY IF EXISTS "Public read for experience photos" ON storage.objects;
 CREATE POLICY "Public read for experience photos"
     ON storage.objects
@@ -115,7 +290,6 @@ CREATE POLICY "Public read for experience photos"
     TO anon, authenticated
     USING (bucket_id = 'experience-photos');
 
--- 2. Authenticated/Anonymous users can upload photos into experience-photos bucket
 DROP POLICY IF EXISTS "Users can upload experience photos" ON storage.objects;
 CREATE POLICY "Users can upload experience photos"
     ON storage.objects
@@ -126,7 +300,6 @@ CREATE POLICY "Users can upload experience photos"
         AND (storage.foldername(name))[1] = 'photos'
     );
 
--- 3. Only uploader can delete their uploaded photos
 DROP POLICY IF EXISTS "Users can delete their uploaded photos" ON storage.objects;
 CREATE POLICY "Users can delete their uploaded photos"
     ON storage.objects
@@ -136,3 +309,17 @@ CREATE POLICY "Users can delete their uploaded photos"
         bucket_id = 'experience-photos'
         AND owner = auth.uid()
     );
+
+-- 7. Realtime Publications
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND tablename = 'notifications'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        NULL;
+END $$;

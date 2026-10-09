@@ -1,7 +1,8 @@
 /**
- * DEARLY — Recipient Interactive Story Engine
+ * DEARLY — Recipient Interactive Story Engine (v2.0)
  * Powers the multi-screen, emotionally animated recipient story experience
- * for Love, Apology, Birthday, and Proposal gifts.
+ * for Love, Apology, Birthday, and Proposal gifts, including memories gallery
+ * and the Two-Way Love Response System.
  */
 
 class DearlyStoryPlayer {
@@ -13,6 +14,7 @@ class DearlyStoryPlayer {
     this.screens = [];
     this.isMuted = false;
     this.hasBlownCandles = false;
+    this.selectedReaction = '';
   }
 
   init(data) {
@@ -58,7 +60,7 @@ class DearlyStoryPlayer {
       });
     }
 
-    // Screen: Memories / Photo Gallery (skipped gracefully if no photos)
+    // Screen: Memories / Photo Gallery (rendered if photos exist)
     const validPhotos = (this.data.photos || [])
       .map(p => this.getPhotoSrc(p))
       .filter(src => src && src.length > 0);
@@ -80,7 +82,7 @@ class DearlyStoryPlayer {
       });
     }
 
-    // Screen: Final Grand Reveal (customized by category)
+    // Screen: Final Grand Reveal & Two-Way Response Section
     this.screens.push({
       type: 'reveal',
       category: this.data.type,
@@ -189,10 +191,18 @@ class DearlyStoryPlayer {
     photos.forEach((photo, idx) => {
       const src = this.getPhotoSrc(photo);
       if (!src) return;
-      const tilt = (idx % 2 === 0 ? -2.5 : 2.5) * (1 + (idx * 0.4));
+      const tilt = (idx % 2 === 0 ? -2.2 : 2.2) * (1 + ((idx % 3) * 0.3));
       photoItems += `
-        <div class="polaroid-frame" style="--tilt: ${tilt}deg; margin-bottom: 24px;">
-          <img src="${src}" class="polaroid-img" alt="Special memory ${idx + 1}" loading="eager" onerror="this.onerror=null; this.src='assets/images/logo.svg';">
+        <div class="polaroid-frame" style="--tilt: ${tilt}deg;" data-photo-idx="${idx}">
+          <div class="polaroid-img-wrapper">
+            <div class="polaroid-spinner" id="spinner-photo-${idx}">⏳</div>
+            <img src="${this.escapeHtml(src)}" 
+                 class="polaroid-img" 
+                 alt="Special memory ${idx + 1}" 
+                 loading="eager"
+                 onload="const sp=document.getElementById('spinner-photo-${idx}'); if(sp) sp.style.display='none'; this.classList.add('loaded');"
+                 onerror="this.onerror=null; const sp=document.getElementById('spinner-photo-${idx}'); if(sp) sp.style.display='none'; this.classList.add('error'); this.parentElement.innerHTML='<div class=\\'polaroid-fallback-card\\'><span style=\\'font-size:2rem;\\'>📸</span><span>Special Moment #${idx + 1}</span></div>';">
+          </div>
           <div class="polaroid-caption">Memory #${idx + 1} ✨</div>
         </div>
       `;
@@ -201,15 +211,18 @@ class DearlyStoryPlayer {
     return `
       <div class="story-card story-card-memories text-center">
         <div class="story-badge">📸 Precious Memories</div>
-        <h2 style="font-size: 1.6rem; margin-top: 14px; margin-bottom: 20px;">
+        <h2 style="font-size: 1.6rem; margin-top: 14px; margin-bottom: 8px;">
           Moments I Cherish With You
         </h2>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 22px;">
+          Snapshots of our favourite moments together.
+        </p>
 
         <div class="memories-gallery-scroll">
           ${photoItems}
         </div>
 
-        <div class="story-actions" style="margin-top: 24px;">
+        <div class="story-actions" style="margin-top: 26px;">
           <button type="button" class="btn btn-secondary btn-sm" id="btn-story-prev">← Previous</button>
           <button type="button" class="btn btn-primary" id="btn-story-next">Continue →</button>
         </div>
@@ -245,16 +258,18 @@ class DearlyStoryPlayer {
     `;
   }
 
-  // --- Screen 5: Reveal Screen (by category) ---
+  // --- Screen 5: Reveal Screen (by category) + Two-Way Love Response System ---
   renderRevealScreen() {
     const sender = this.data.sender_name || 'Someone who cares';
     const recipient = this.data.nickname || this.data.recipient_name || 'You';
     const type = this.data.type || 'love';
+    const publicId = this.data.public_id || '';
+    const hasAlreadyReplied = publicId && localStorage.getItem(`dearly_replied_${publicId}`);
 
-    let contentHtml = '';
+    let categoryHeaderHtml = '';
 
     if (type === 'apology') {
-      contentHtml = `
+      categoryHeaderHtml = `
         <div class="story-badge">🕊️ A Sincere Promise</div>
         <h2 style="font-size: 1.8rem; margin-top: 16px; margin-bottom: 12px;">
           I Hope You Can Forgive Me
@@ -262,19 +277,9 @@ class DearlyStoryPlayer {
         <p style="color: var(--text-muted); font-size: 1.05rem; line-height: 1.7; margin-bottom: 24px;">
           You mean too much to me for silence or distance. I promise to listen, learn, and do better.
         </p>
-
-        <div class="reveal-response-box" style="margin-bottom: 28px;">
-          <p style="font-weight: 600; font-size: 0.92rem; color: var(--text-muted); margin-bottom: 12px;">Send a quick feeling back to ${this.escapeHtml(sender)}:</p>
-          <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-            <button type="button" class="btn btn-secondary btn-sm response-chip-btn" data-reaction="❤️ I forgive you">❤️ I forgive you</button>
-            <button type="button" class="btn btn-secondary btn-sm response-chip-btn" data-reaction="💬 Let's talk">💬 Let's talk</button>
-            <button type="button" class="btn btn-secondary btn-sm response-chip-btn" data-reaction="🥺 Needed to hear this">🥺 Needed this</button>
-          </div>
-          <div id="reaction-feedback" style="margin-top: 12px; font-weight: 600; color: var(--color-primary); display: none;"></div>
-        </div>
       `;
     } else if (type === 'birthday') {
-      contentHtml = `
+      categoryHeaderHtml = `
         <div class="story-badge">🎂 Make A Wish!</div>
         <h2 style="font-size: 1.9rem; margin-top: 16px; margin-bottom: 8px;">
           Happy Birthday, <span class="text-gradient">${this.escapeHtml(recipient)}</span>! 🎉
@@ -296,16 +301,16 @@ class DearlyStoryPlayer {
       `;
     } else if (type === 'proposal') {
       const question = this.data.reason || 'Will you marry me? 💍';
-      contentHtml = `
+      categoryHeaderHtml = `
         <div class="story-badge">💍 Forever & Always</div>
         <h2 style="font-size: clamp(1.8rem, 4vw, 2.4rem); margin-top: 16px; margin-bottom: 14px; color: var(--color-primary);">
           ${this.escapeHtml(question)}
         </h2>
-        <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 28px;">
+        <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 24px;">
           Every single day with you is my favourite adventure.
         </p>
 
-        <div class="proposal-buttons-container" style="display: flex; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 28px; position: relative;">
+        <div class="proposal-buttons-container" style="display: flex; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 24px; position: relative;">
           <button type="button" class="btn btn-primary btn-lg" id="btn-proposal-yes" style="min-width: 200px; font-size: 1.2rem; box-shadow: 0 8px 24px rgba(244, 63, 94, 0.4);">
             YES! A Million Times YES! 💖
           </button>
@@ -313,13 +318,13 @@ class DearlyStoryPlayer {
             Let me think... 😜
           </button>
         </div>
-        <div id="proposal-celebration-banner" style="display: none; padding: 16px; background: #FFF1F2; border-radius: 16px; border: 1px solid #FECDD3; color: var(--color-primary); font-weight: 700; font-size: 1.1rem; margin-bottom: 20px;">
+        <div id="proposal-celebration-banner" style="display: none; padding: 14px; background: #FFF1F2; border-radius: 14px; border: 1px solid #FECDD3; color: var(--color-primary); font-weight: 700; font-size: 1.05rem; margin-bottom: 20px;">
           SHE / HE SAID YES! 🎉🥂💍 Forever starts now!
         </div>
       `;
     } else {
       // Default / Love Reveal
-      contentHtml = `
+      categoryHeaderHtml = `
         <div class="story-badge">💖 With All My Heart</div>
         <h2 style="font-size: 1.9rem; margin-top: 16px; margin-bottom: 12px;">
           You Are My Favorite Person
@@ -327,21 +332,105 @@ class DearlyStoryPlayer {
         <p style="color: var(--text-muted); font-size: 1.05rem; line-height: 1.7; margin-bottom: 24px;">
           Thank you for being in my life. Every day feels a little softer, happier, and brighter with you.
         </p>
+      `;
+    }
 
-        <div style="margin-bottom: 24px;">
-          <button type="button" class="btn btn-primary btn-lg animate-heartbeat" id="btn-send-love-back">
-            Send Love Back 💕
-          </button>
+    // Reaction chips based on category
+    let chipsHtml = '';
+    if (type === 'apology') {
+      chipsHtml = `
+        <button type="button" class="response-chip-btn" data-reaction="❤️ I forgive you" data-type="forgive">❤️ I forgive you</button>
+        <button type="button" class="response-chip-btn" data-reaction="💬 Let's talk soon" data-type="forgive">💬 Let's talk</button>
+        <button type="button" class="response-chip-btn" data-reaction="🥺 Needed to hear this" data-type="forgive">🥺 Needed this</button>
+      `;
+    } else if (type === 'birthday') {
+      chipsHtml = `
+        <button type="button" class="response-chip-btn" data-reaction="🎂 Thank you for making my day!" data-type="wish">🎂 Loved this!</button>
+        <button type="button" class="response-chip-btn" data-reaction="✨ Best birthday wish ever" data-type="wish">✨ Best wish!</button>
+        <button type="button" class="response-chip-btn" data-reaction="🥰 Hugs and love back" data-type="love_back">🥰 Huge hugs!</button>
+      `;
+    } else if (type === 'proposal') {
+      chipsHtml = `
+        <button type="button" class="response-chip-btn active" data-reaction="💍 YES! A Million Times YES! 💖" data-type="yes">💍 YES! A Million Times YES!</button>
+        <button type="button" class="response-chip-btn" data-reaction="💖 I love you with all my heart" data-type="yes">💖 Forever Yours</button>
+      `;
+    } else {
+      chipsHtml = `
+        <button type="button" class="response-chip-btn active" data-reaction="💕 Sending all my love back to you" data-type="love_back">💕 Love you too!</button>
+        <button type="button" class="response-chip-btn" data-reaction="🥺 This made me smile so much" data-type="love_back">🥺 Made me smile!</button>
+        <button type="button" class="response-chip-btn" data-reaction="🥰 You are my favorite person too" data-type="love_back">🥰 You're my favorite!</button>
+      `;
+    }
+
+    // Two-Way Love Response Section
+    let responseSectionHtml = '';
+    if (hasAlreadyReplied) {
+      responseSectionHtml = `
+        <div class="love-response-success-card" style="margin-top: 24px; padding: 22px; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 16px;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">💌</div>
+          <h3 style="font-size: 1.15rem; color: #065F46; margin-bottom: 6px;">You already sent your love back!</h3>
+          <p style="color: #047857; font-size: 0.92rem; margin: 0;">
+            ${this.escapeHtml(sender)} has received your heartfelt reply. Thank you for making this moment two-way! 💕
+          </p>
         </div>
-        <div id="love-sent-banner" style="display: none; color: var(--color-primary); font-weight: 700; margin-bottom: 18px;">
-          Love sent to ${this.escapeHtml(sender)}! 🥰✨
+      `;
+    } else {
+      responseSectionHtml = `
+        <div class="love-response-card" id="love-response-card">
+          <div class="love-response-header">
+            <h3 style="font-size: 1.15rem; margin-bottom: 4px; color: var(--text-main);">
+              Send Love Back to ${this.escapeHtml(sender)} ❤️
+            </h3>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 14px;">
+              Let them know how this made you feel with a direct, private reply.
+            </p>
+          </div>
+
+          <!-- Quick Reaction Chips -->
+          <div class="reaction-chips-wrapper" id="reaction-chips-wrapper">
+            ${chipsHtml}
+          </div>
+
+          <!-- Optional Reply Message Input -->
+          <div class="form-group" style="margin-top: 14px; text-align: left;">
+            <label class="form-label" for="recipient-reply-msg" style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted);">
+              <span>Personal note back (optional)</span>
+              <span id="reply-char-counter" style="float: right; font-weight: normal; font-size: 0.78rem;">0 / 500</span>
+            </label>
+            <textarea id="recipient-reply-msg" 
+                      class="form-textarea" 
+                      maxlength="500" 
+                      placeholder="Write a sweet message back to ${this.escapeHtml(sender)}..." 
+                      style="min-height: 85px; font-size: 0.92rem; padding: 10px 14px;"></textarea>
+          </div>
+
+          <!-- Optional Name Input -->
+          <div class="form-group" style="margin-top: 10px; text-align: left;">
+            <input type="text" 
+                   id="recipient-reply-sender-name" 
+                   class="form-input" 
+                   placeholder="Your name (e.g. ${this.escapeHtml(recipient)})" 
+                   value="${this.escapeHtml(this.data.recipient_name || '')}" 
+                   style="font-size: 0.9rem; padding: 10px 14px;">
+          </div>
+
+          <!-- Submit Button -->
+          <div style="margin-top: 16px;">
+            <button type="button" class="btn btn-primary btn-lg btn-block" id="btn-submit-love-response" style="width: 100%;">
+              Send Love Back ❤️
+            </button>
+          </div>
+
+          <!-- Status / Error message -->
+          <div id="response-submit-feedback" style="display: none; margin-top: 12px; font-size: 0.88rem; font-weight: 600;"></div>
         </div>
       `;
     }
 
     return `
       <div class="story-card story-card-reveal text-center">
-        ${contentHtml}
+        ${categoryHeaderHtml}
+        ${responseSectionHtml}
 
         <div class="reveal-footer-actions" style="margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
           <button type="button" class="btn btn-secondary btn-sm" id="btn-restart-story">
@@ -423,7 +512,6 @@ class DearlyStoryPlayer {
     }
     if (btnMaybe) {
       btnMaybe.addEventListener('mouseover', () => {
-        // Playful evasive button
         const randomX = (Math.random() - 0.5) * 120;
         const randomY = (Math.random() - 0.5) * 60;
         btnMaybe.style.transform = `translate(${randomX}px, ${randomY}px)`;
@@ -435,49 +523,127 @@ class DearlyStoryPlayer {
       });
     }
 
-    // 6. Love send back
-    const btnLove = document.getElementById('btn-send-love-back');
-    const loveBanner = document.getElementById('love-sent-banner');
-    if (btnLove) {
-      btnLove.addEventListener('click', () => {
-        const sender = this.data.sender_name || 'your loved one';
-        
-        // Audio & celebration fireworks
-        if (window.dearlyAudio) window.dearlyAudio.playCelebration();
-        this.triggerHeartExplosion();
+    // 6. Two-Way Response Handlers
+    this.bindLoveResponseEvents();
+  }
 
-        // Update button visual state
-        btnLove.textContent = 'Love Sent Back! 🥰✨';
-        btnLove.classList.remove('animate-heartbeat');
-        btnLove.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
-        btnLove.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.35)';
-        btnLove.style.pointerEvents = 'none';
+  bindLoveResponseEvents() {
+    const textarea = document.getElementById('recipient-reply-msg');
+    const counter = document.getElementById('reply-char-counter');
+    const btnSubmit = document.getElementById('btn-submit-love-response');
+    const feedback = document.getElementById('response-submit-feedback');
+    const chips = this.containerEl.querySelectorAll('.response-chip-btn');
+    const nameInput = document.getElementById('recipient-reply-sender-name');
 
-        // Trigger floating website notification toast
-        this.showLoveNotification(sender);
-
-        // Update banner text
-        if (loveBanner) {
-          loveBanner.style.display = 'block';
-          loveBanner.innerHTML = `💌 Love delivered to <strong>${this.escapeHtml(sender)}</strong>! 💕`;
-        }
+    // Char counter
+    if (textarea && counter) {
+      textarea.addEventListener('input', () => {
+        counter.textContent = `${textarea.value.length} / 500`;
       });
     }
 
-    // 7. Apology Response Chips
-    const chips = this.containerEl.querySelectorAll('.response-chip-btn');
-    const feedback = document.getElementById('reaction-feedback');
-    chips.forEach((chip) => {
+    // Reaction Chips click selection
+    let activeType = 'love_back';
+    chips.forEach(chip => {
       chip.addEventListener('click', () => {
-        const reaction = chip.getAttribute('data-reaction');
-        if (feedback) {
-          feedback.style.display = 'block';
-          feedback.textContent = `Response sent: "${reaction}" 💌`;
+        chips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        this.selectedReaction = chip.getAttribute('data-reaction') || '';
+        activeType = chip.getAttribute('data-type') || 'love_back';
+
+        // Auto-fill or append reaction into textarea if empty
+        if (textarea && textarea.value.trim() === '') {
+          textarea.value = this.selectedReaction;
+          if (counter) counter.textContent = `${textarea.value.length} / 500`;
         }
-        chips.forEach((c) => (c.disabled = true));
         if (window.dearlyAudio) window.dearlyAudio.playHeartPop();
       });
     });
+
+    // Default select first chip if present
+    if (chips.length > 0 && !this.selectedReaction) {
+      const activeChip = this.containerEl.querySelector('.response-chip-btn.active') || chips[0];
+      if (activeChip) {
+        this.selectedReaction = activeChip.getAttribute('data-reaction') || '';
+        activeType = activeChip.getAttribute('data-type') || 'love_back';
+      }
+    }
+
+    // Submit Love Response
+    if (btnSubmit) {
+      btnSubmit.addEventListener('click', async () => {
+        const publicId = this.data.public_id;
+        const replyText = textarea ? textarea.value.trim() : (this.selectedReaction || 'Sent love back ❤️');
+        const replySenderName = nameInput ? nameInput.value.trim() : (this.data.recipient_name || 'Someone special');
+        const sender = this.data.sender_name || 'your loved one';
+
+        if (!publicId) {
+          if (feedback) {
+            feedback.style.display = 'block';
+            feedback.style.color = '#EF4444';
+            feedback.textContent = 'Preview Mode: Responses can only be sent from published gifts.';
+          }
+          return;
+        }
+
+        // Disable button & show spinner
+        btnSubmit.disabled = true;
+        const originalText = btnSubmit.innerHTML;
+        btnSubmit.innerHTML = 'Sending with love... ✨';
+        if (feedback) feedback.style.display = 'none';
+
+        try {
+          const result = await window.dearlyDB.submitResponse({
+            publicId: publicId,
+            message: replyText,
+            recipientName: replySenderName,
+            responseType: activeType
+          });
+
+          if (result && result.success) {
+            // Mark as replied locally to prevent duplicate accidental sends
+            localStorage.setItem(`dearly_replied_${publicId}`, 'true');
+
+            // Audio & visual celebrations
+            if (window.dearlyAudio) window.dearlyAudio.playCelebration();
+            this.triggerHeartExplosion();
+
+            // Replace response card with beautiful success message
+            const card = document.getElementById('love-response-card');
+            if (card) {
+              card.innerHTML = `
+                <div class="love-response-success-card animate-scale-in" style="padding: 24px; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 16px;">
+                  <div style="font-size: 2.4rem; margin-bottom: 10px;" class="animate-heartbeat">💌</div>
+                  <h3 style="font-size: 1.25rem; color: #065F46; margin-bottom: 8px;">
+                    Love Delivered! 💕
+                  </h3>
+                  <p style="color: #047857; font-size: 0.95rem; line-height: 1.6; margin: 0 0 12px 0;">
+                    Your warm response has been saved and delivered to <strong>${this.escapeHtml(sender)}</strong>!
+                  </p>
+                  <p style="color: #065F46; font-size: 0.86rem; font-style: italic;">
+                    "${this.escapeHtml(replyText)}"
+                  </p>
+                </div>
+              `;
+            }
+
+            // Also show floating toast
+            this.showLoveNotification(sender);
+          } else {
+            throw new Error(result?.error || 'Could not save response');
+          }
+        } catch (err) {
+          console.error('Error submitting response:', err);
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = originalText;
+          if (feedback) {
+            feedback.style.display = 'block';
+            feedback.style.color = '#EF4444';
+            feedback.textContent = `Could not send response: ${err.message || 'Please check your connection.'}`;
+          }
+        }
+      });
+    }
   }
 
   nextScreen() {
@@ -587,9 +753,26 @@ class DearlyStoryPlayer {
 
   getPhotoSrc(photo) {
     if (!photo) return '';
-    if (typeof photo === 'string') return photo;
+    if (typeof photo === 'string') {
+      if (photo.startsWith('http://') || photo.startsWith('https://') || photo.startsWith('data:image/')) {
+        return photo;
+      }
+      // If relative storage path
+      const bucketName = window.DEARLY_CONFIG?.STORAGE_BUCKET || 'experience-photos';
+      if (window.dearlyDB?.client) {
+        const { data } = window.dearlyDB.client.storage.from(bucketName).getPublicUrl(photo);
+        return data?.publicUrl || photo;
+      }
+      return photo;
+    }
     if (typeof photo === 'object') {
-      return photo.dataUrl || photo.url || photo.src || '';
+      const direct = photo.url || photo.dataUrl || photo.src || photo.publicUrl;
+      if (direct) return direct;
+      if (photo.path && window.dearlyDB?.client) {
+        const bucketName = window.DEARLY_CONFIG?.STORAGE_BUCKET || 'experience-photos';
+        const { data } = window.dearlyDB.client.storage.from(bucketName).getPublicUrl(photo.path);
+        return data?.publicUrl || '';
+      }
     }
     return '';
   }
@@ -605,19 +788,17 @@ class DearlyStoryPlayer {
       <div class="love-notification-icon">💌</div>
       <div class="love-notification-content">
         <div class="love-notification-title">Notification: Love Sent Back! 💕</div>
-        <div class="love-notification-desc">You sent a warm hug and heartfelt love back to <strong>${this.escapeHtml(sender)}</strong>!</div>
+        <div class="love-notification-desc">Your heartfelt message has been delivered to <strong>${this.escapeHtml(sender)}</strong>!</div>
       </div>
       <button type="button" class="love-notification-close" title="Dismiss" aria-label="Dismiss notification">✕</button>
     `;
 
     document.body.appendChild(toast);
 
-    // Slide in
     requestAnimationFrame(() => {
       toast.classList.add('show');
     });
 
-    // Dismiss button
     const closeBtn = toast.querySelector('.love-notification-close');
     if (closeBtn) {
       closeBtn.addEventListener('click', () => {
@@ -626,23 +807,12 @@ class DearlyStoryPlayer {
       });
     }
 
-    // Auto dismiss after 5 seconds
     setTimeout(() => {
       if (toast.parentNode) {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 400);
       }
     }, 5000);
-
-    // Also trigger native browser notification if allowed
-    if ("Notification" in window && Notification.permission === "granted") {
-      try {
-        new Notification("DEARLY 💌 Love Sent!", {
-          body: `Love sent back to ${sender}! 💕`,
-          icon: "assets/images/logo.svg"
-        });
-      } catch (e) {}
-    }
   }
 }
 

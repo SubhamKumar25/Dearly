@@ -4,7 +4,10 @@
   "rewrites": [
     { "source": "/s/:id", "destination": "/surprise.html?id=:id" },
     { "source": "/create/:type", "destination": "/create.html?type=:type" },
-    { "source": "/preview/:type", "destination": "/preview.html?type=:type" }
+    { "source": "/preview/:type", "destination": "/preview.html?type=:type" },
+    { "source": "/auth", "destination": "/auth.html" },
+    { "source": "/login", "destination": "/auth.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" }
   ],
   "headers": [
     {

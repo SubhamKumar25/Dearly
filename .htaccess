@@ -21,6 +21,13 @@
 
     # /preview/love -> preview.html?type=love
     RewriteRule ^preview/([a-zA-Z0-9_-]+)/?$ preview.html?type=$1 [L,QSA]
+
+    # /auth, /login -> auth.html
+    RewriteRule ^auth/?$ auth.html [L]
+    RewriteRule ^login/?$ auth.html [L]
+
+    # /dashboard -> dashboard.html
+    RewriteRule ^dashboard/?$ dashboard.html [L]
 </IfModule>
 
 # 2. Custom Error Page

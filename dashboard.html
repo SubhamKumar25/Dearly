@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEARLY — Sender Dashboard</title>
+  <meta name="description" content="Manage your created surprises, view received love responses, and track notifications.">
+  <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/animations.css">
+</head>
+<body class="home-page">
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container nav-container">
+      <a href="index.html" class="logo-link" aria-label="DEARLY Home">
+        <img src="assets/images/logo.svg" alt="DEARLY Logo" class="logo-img">
+      </a>
+
+      <!-- Desktop Nav -->
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-link">Home</a></li>
+        <li><a href="create.html?type=love" class="nav-link">Create New</a></li>
+        <li><a href="dashboard.html" class="nav-link" style="color: var(--color-primary); font-weight: 700;">Dashboard</a></li>
+      </ul>
+
+      <!-- Nav CTA & Auth Action -->
+      <div class="nav-actions">
+        <!-- Injected dynamically by auth.js -->
+        <a href="create.html?type=love" class="btn btn-primary btn-sm">Create Something ✨</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Dashboard Wrapper -->
+  <main class="dashboard-wrapper container" id="dashboard-main-view">
+    
+    <!-- Top Welcome Banner -->
+    <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;">
+      <div>
+        <div class="badge" style="margin-bottom: 8px;">Sender Dashboard 💌</div>
+        <h1 style="font-size: clamp(1.8rem, 3.5vw, 2.4rem); margin: 0;" id="dashboard-user-greeting">
+          Welcome back! 💕
+        </h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 6px; margin-bottom: 0;">
+          Here are the moments you've created and the love you've received in return.
+        </p>
+      </div>
+
+      <div>
+        <a href="create.html?type=love" class="btn btn-primary btn-lg">
+          + Create New Gift ✨
+        </a>
+      </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div class="dashboard-stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">💌</div>
+        <div>
+          <div class="stat-number" id="stat-surprises-count">0</div>
+          <div class="stat-label">Surprises Created</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background: #ECFDF5; color: #10B981;">💬</div>
+        <div>
+          <div class="stat-number" id="stat-replies-count">0</div>
+          <div class="stat-label">Love Responses Received</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background: #EFF6FF; color: #3B82F6;">🔔</div>
+        <div>
+          <div class="stat-number" id="stat-notifs-count">0</div>
+          <div class="stat-label">Unread Notifications</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Tabs -->
+    <div class="dashboard-tabs">
+      <a href="javascript:void(0)" class="dashboard-tab-link active" data-tab="surprises">
+        <span>💌 My Surprises</span>
+      </a>
+      <a href="javascript:void(0)" class="dashboard-tab-link" data-tab="notifications">
+        <span>🔔 Notifications & Replies</span>
+        <span class="dashboard-tab-badge unread" id="tab-notifs-badge" style="display: none;">0</span>
+      </a>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="dashboard-loading-spinner" style="text-align: center; padding: 48px 0;">
+      <div style="font-size: 2.5rem; margin-bottom: 12px;" class="animate-heartbeat">💌</div>
+      <p style="color: var(--text-muted); font-size: 0.92rem;">Loading your moments and responses...</p>
+    </div>
+
+    <!-- TAB 1: Surprises Grid Panel -->
+    <div id="panel-surprises" style="display: block;">
+      <div id="surprises-list-container">
+        <!-- Rendered by dashboard.js -->
+      </div>
+    </div>
+
+    <!-- TAB 2: Notifications Panel -->
+    <div id="panel-notifications" style="display: none;">
+      <div id="notifications-list-container">
+        <!-- Rendered by dashboard.js -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Footer -->
+  <footer class="site-footer" style="margin-top: 60px;">
+    <div class="container footer-inner">
+      <a href="index.html" class="logo-link">
+        <img src="assets/images/logo.svg" alt="DEARLY Logo" class="logo-img">
+      </a>
+      <p class="footer-tagline">Turn your feelings into a moment.</p>
+      <p class="footer-text">
+        © 2026 DEARLY. Crafted with love. Free, private, and made for people who care.
+      </p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/audio.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/supabase.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+</body>
+</html>
