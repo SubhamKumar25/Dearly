@@ -170,6 +170,51 @@ class DearlyAuthService {
     }
   }
 
+  async signInWithGoogle(redirectTarget = 'dashboard.html') {
+    await window.dearlyDB?.ensureReady?.();
+    const client = window.dearlyDB?.client;
+
+    if (client) {
+      // Build absolute callback URL back to auth.html preserving redirectTarget
+      const callbackUrl = new URL('auth.html', window.location.href);
+      if (redirectTarget) {
+        callbackUrl.searchParams.set('redirect', redirectTarget);
+      }
+
+      const { data, error } = await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: callbackUrl.toString(),
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
+        }
+      });
+
+      if (error) {
+        throw new Error(this.mapAuthError(error.message));
+      }
+      return data;
+    } else {
+      // Demo fallback when running without configured Supabase
+      const demoUser = {
+        id: 'demo-google-' + Date.now(),
+        email: 'user@gmail.com',
+        user_metadata: {
+          display_name: 'Google User',
+          full_name: 'Google User',
+          name: 'Google User'
+        }
+      };
+      this.user = demoUser;
+      localStorage.setItem('dearly_demo_user', JSON.stringify(demoUser));
+      this.claimLocalExperiences(demoUser.id);
+      this.updateNavbars();
+      return { user: demoUser };
+    }
+  }
+
   async signOut() {
     const client = window.dearlyDB?.client;
     if (client) {
@@ -198,9 +243,9 @@ class DearlyAuthService {
     }
 
     if (client) {
-      const redirectUrl = `${window.location.origin}${window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'))}/auth.html?mode=update-password`;
+      const callbackUrl = new URL('auth.html?mode=update-password', window.location.href).toString();
       const { data, error } = await client.auth.resetPasswordForEmail(cleanEmail, {
-        redirectTo: redirectUrl
+        redirectTo: callbackUrl
       });
       if (error) {
         throw new Error(this.mapAuthError(error.message));
@@ -266,6 +311,12 @@ class DearlyAuthService {
     }
     if (msg.includes('rate limit')) {
       return 'Too many attempts. Please wait a few minutes before trying again.';
+    }
+    if (msg.includes('unsupported provider') || msg.includes('provider is not enabled') || msg.includes('provider google is not enabled') || msg.includes('validation failed: provider')) {
+      return 'Google sign-in is not enabled in your Supabase project yet. Please enable Google provider in your Supabase Authentication settings.';
+    }
+    if (msg.includes('access_denied') || msg.includes('user cancelled')) {
+      return 'Google sign-in was cancelled.';
     }
     if (msg.includes('network') || msg.includes('fetch')) {
       return 'Network connection issue. Please check your internet connection.';

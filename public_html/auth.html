@@ -39,11 +39,10 @@
         </p>
       </div>
 
-      <!-- Auth Tabs -->
+      <!-- Auth Tabs (Only Log In & Sign Up) -->
       <div class="auth-tabs" id="auth-tabs-bar">
         <button type="button" class="auth-tab-btn active" data-tab="login" id="tab-login">Log In</button>
         <button type="button" class="auth-tab-btn" data-tab="signup" id="tab-signup">Sign Up</button>
-        <button type="button" class="auth-tab-btn" data-tab="forgot" id="tab-forgot">Reset</button>
       </div>
 
       <!-- Alert Box -->
@@ -58,7 +57,7 @@
         <div class="form-group">
           <div class="form-label">
             <span>Password</span>
-            <a href="javascript:void(0)" id="link-forgot-pass" style="font-size: 0.8rem; color: var(--color-primary); float: right;">Forgot password?</a>
+            <a href="javascript:void(0)" id="link-forgot-pass" style="font-size: 0.82rem; color: var(--color-primary); float: right; font-weight: 500; text-decoration: none;">Forgot password?</a>
           </div>
           <input type="password" id="login-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
         </div>
@@ -67,6 +66,22 @@
             Log In ✨
           </button>
         </div>
+
+        <!-- Divider -->
+        <div class="auth-divider">
+          <span>or continue with</span>
+        </div>
+
+        <!-- Google Sign-In -->
+        <button type="button" class="btn-google" id="btn-login-google">
+          <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span class="btn-google-text">Continue with Google</span>
+        </button>
       </form>
 
       <!-- SIGNUP FORM -->
@@ -91,17 +106,38 @@
             Create Free Account 💌
           </button>
         </div>
+
+        <!-- Divider -->
+        <div class="auth-divider">
+          <span>or continue with</span>
+        </div>
+
+        <!-- Google Sign-In -->
+        <button type="button" class="btn-google" id="btn-signup-google">
+          <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span class="btn-google-text">Continue with Google</span>
+        </button>
       </form>
 
-      <!-- FORGOT PASSWORD FORM -->
+      <!-- FORGOT PASSWORD FORM (Clean separate view) -->
       <form id="form-forgot" style="display: none;">
         <div class="form-group">
           <label class="form-label" for="forgot-email">Account Email</label>
-          <input type="email" id="forgot-email" class="form-input" placeholder="name@example.com" required>
+          <input type="email" id="forgot-email" class="form-input" placeholder="name@example.com" required autocomplete="email">
         </div>
         <div style="margin-top: 24px;">
           <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="btn-forgot-submit">
             Send Reset Link 📧
+          </button>
+        </div>
+        <div style="margin-top: 18px; text-align: center;">
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-back-to-login" style="color: var(--text-muted);">
+            ← Back to Log In
           </button>
         </div>
       </form>
@@ -110,11 +146,16 @@
       <form id="form-update-pass" style="display: none;">
         <div class="form-group">
           <label class="form-label" for="new-password">New Password</label>
-          <input type="password" id="new-password" class="form-input" placeholder="Enter new password" minlength="6" required>
+          <input type="password" id="new-password" class="form-input" placeholder="Enter new password (min 6 chars)" minlength="6" required autocomplete="new-password">
         </div>
         <div style="margin-top: 24px;">
           <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;" id="btn-update-pass-submit">
             Update Password & Log In ✨
+          </button>
+        </div>
+        <div style="margin-top: 18px; text-align: center;">
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-update-back-login" style="color: var(--text-muted);">
+            ← Back to Log In
           </button>
         </div>
       </form>
@@ -140,9 +181,26 @@
       const redirectTarget = urlParams.get('redirect') || 'dashboard.html';
       const initialMode = urlParams.get('mode') || (urlParams.get('tab') === 'signup' ? 'signup' : 'login');
 
-      // Check if user is already logged in
+      // Check for OAuth error in URL hash or query params
+      const hash = window.location.hash ? window.location.hash.substring(1) : '';
+      const hashParams = new URLSearchParams(hash);
+      const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
+      const errorMsg = urlParams.get('error') || hashParams.get('error');
+
+      if (errorDescription || errorMsg) {
+        const raw = decodeURIComponent(errorDescription || errorMsg);
+        let friendly = raw;
+        if (raw.toLowerCase().includes('cancelled') || raw.toLowerCase().includes('access_denied')) {
+          friendly = 'Google sign-in was cancelled. You can try again or use email login.';
+        } else if (raw.toLowerCase().includes('not enabled') || raw.toLowerCase().includes('unsupported')) {
+          friendly = 'Google sign-in is not enabled in Supabase yet. Please enable the Google provider in your Supabase Authentication settings.';
+        }
+        showAlert('error', friendly);
+      }
+
+      // Check if user is already logged in (including returning from Google OAuth)
       await window.dearlyAuth.init();
-      if (window.dearlyAuth.getUser() && initialMode !== 'update-password') {
+      if (window.dearlyAuth.getUser() && initialMode !== 'update-password' && !window.location.hash.includes('type=recovery')) {
         window.location.href = redirectTarget;
         return;
       }
@@ -154,7 +212,7 @@
         switchTab(initialMode);
       }
 
-      // Tab switcher
+      // Tab switcher for Log In & Sign Up
       const tabBtns = document.querySelectorAll('.auth-tab-btn');
       tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -162,9 +220,23 @@
         });
       });
 
+      // "Forgot password?" link handler
       const linkForgot = document.getElementById('link-forgot-pass');
       if (linkForgot) {
-        linkForgot.addEventListener('click', () => switchTab('forgot'));
+        linkForgot.addEventListener('click', (e) => {
+          e.preventDefault();
+          switchTab('forgot');
+        });
+      }
+
+      // "Back to Log In" buttons
+      const btnBackLogin = document.getElementById('btn-back-to-login');
+      if (btnBackLogin) {
+        btnBackLogin.addEventListener('click', () => switchTab('login'));
+      }
+      const btnUpdateBackLogin = document.getElementById('btn-update-back-login');
+      if (btnUpdateBackLogin) {
+        btnUpdateBackLogin.addEventListener('click', () => switchTab('login'));
       }
 
       function switchTab(mode) {
@@ -185,21 +257,23 @@
         formUpdate.style.display = 'none';
 
         if (mode === 'signup') {
+          tabsBar.style.display = 'flex';
           formSignup.style.display = 'block';
           document.getElementById('tab-signup').classList.add('active');
           title.textContent = 'Create Sender Account';
           subtitle.textContent = 'Keep track of all your gifts and receive warm responses.';
         } else if (mode === 'forgot') {
-          formForgot.style.display = 'block';
-          document.getElementById('tab-forgot').classList.add('active');
-          title.textContent = 'Reset Password';
-          subtitle.textContent = 'Enter your email and we will send a password reset link.';
-        } else if (mode === 'update-pass' || mode === 'update-password') {
-          formUpdate.style.display = 'block';
           tabsBar.style.display = 'none';
+          formForgot.style.display = 'block';
+          title.textContent = 'Reset Password';
+          subtitle.textContent = 'Enter your account email and we will send a password reset link.';
+        } else if (mode === 'update-pass' || mode === 'update-password') {
+          tabsBar.style.display = 'none';
+          formUpdate.style.display = 'block';
           title.textContent = 'Choose New Password';
           subtitle.textContent = 'Enter your new password below to regain access to your account.';
         } else {
+          tabsBar.style.display = 'flex';
           formLogin.style.display = 'block';
           document.getElementById('tab-login').classList.add('active');
           title.textContent = 'Welcome Back';
@@ -217,6 +291,45 @@
         const alertEl = document.getElementById('auth-alert');
         alertEl.className = 'auth-alert';
         alertEl.textContent = '';
+      }
+
+      // --- Google OAuth Handler ---
+      async function handleGoogleLogin(triggerBtn) {
+        clearAlert();
+        const googleBtns = document.querySelectorAll('.btn-google');
+        googleBtns.forEach(b => {
+          b.disabled = true;
+          const txt = b.querySelector('.btn-google-text');
+          if (txt) txt.textContent = 'Connecting to Google...';
+        });
+
+        try {
+          const res = await window.dearlyAuth.signInWithGoogle(redirectTarget);
+          if (res && res.user) {
+            showAlert('success', 'Signed in with Google! Redirecting...');
+            if (window.dearlyAudio) window.dearlyAudio.playCelebration();
+            setTimeout(() => {
+              window.location.href = redirectTarget;
+            }, 600);
+          }
+        } catch (err) {
+          showAlert('error', err.message);
+          googleBtns.forEach(b => {
+            b.disabled = false;
+            const txt = b.querySelector('.btn-google-text');
+            if (txt) txt.textContent = 'Continue with Google';
+          });
+        }
+      }
+
+      const btnLoginGoogle = document.getElementById('btn-login-google');
+      if (btnLoginGoogle) {
+        btnLoginGoogle.addEventListener('click', () => handleGoogleLogin(btnLoginGoogle));
+      }
+
+      const btnSignupGoogle = document.getElementById('btn-signup-google');
+      if (btnSignupGoogle) {
+        btnSignupGoogle.addEventListener('click', () => handleGoogleLogin(btnSignupGoogle));
       }
 
       // 1. Handle Login Submit
@@ -263,8 +376,7 @@
           setTimeout(() => {
             window.location.href = redirectTarget;
           }, 800);
-        } catch (err)
-        {
+        } catch (err) {
           showAlert('error', err.message);
           btn.disabled = false;
           btn.textContent = 'Create Free Account 💌';
