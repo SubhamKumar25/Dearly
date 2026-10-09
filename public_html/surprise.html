@@ -182,7 +182,8 @@
     // Recipient Bootloader
     document.addEventListener('DOMContentLoaded', async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const experienceId = urlParams.get('id') || urlParams.get('public_id') || urlParams.get('demo');
+      let rawId = (urlParams.get('id') || urlParams.get('public_id') || urlParams.get('demo') || '').trim();
+      const experienceId = (rawId && rawId !== 'null' && rawId !== 'undefined') ? rawId : null;
       const container = document.getElementById('story-container');
 
       if (!experienceId) {

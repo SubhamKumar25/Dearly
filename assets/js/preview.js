@@ -145,6 +145,7 @@ class DearlyPreviewController {
       const result = await window.dearlyDB.saveExperience(this.previewData);
 
       if (result && result.success) {
+        this.publicId = result.public_id || result.id;
         const baseOrigin = window.location.origin;
         const base = baseOrigin.endsWith('/') ? baseOrigin.slice(0, -1) : baseOrigin;
         this.shareUrl = `${base}/surprise.html?id=${this.publicId}`;
