@@ -100,21 +100,20 @@ class DearlyPreviewController {
       this.player.init();
     }
 
-    // 4. Bind Preview Bar Buttons
-    const btnBack = document.getElementById('btn-preview-back');
-    const btnPublish = document.getElementById('btn-preview-publish');
-
-    if (btnBack) {
-      btnBack.addEventListener('click', () => {
-        window.location.href = `create.html?type=${this.previewData.type || 'love'}`;
+    // 4. Bind Preview Buttons (Top and Bottom Docked Actions)
+    const backButtons = document.querySelectorAll('#btn-preview-back, #btn-preview-back-top, .btn-preview-back');
+    backButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        window.location.href = `create.html?type=${this.previewData?.type || 'love'}`;
       });
-    }
+    });
 
-    if (btnPublish) {
-      btnPublish.addEventListener('click', () => {
+    const publishButtons = document.querySelectorAll('#btn-preview-publish, .btn-preview-publish');
+    publishButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
         this.publishExperience();
       });
-    }
+    });
 
     // 5. Modal actions
     this.bindModalEvents();
@@ -123,6 +122,13 @@ class DearlyPreviewController {
   async publishExperience() {
     if (this.isPublishing) return;
     this.isPublishing = true;
+
+    const publishButtons = document.querySelectorAll('#btn-preview-publish, .btn-preview-publish');
+    publishButtons.forEach(btn => {
+      btn.disabled = true;
+      btn.dataset.origText = btn.innerHTML;
+      btn.innerHTML = 'Creating link... 💌';
+    });
 
     const modal = document.getElementById('share-modal');
     const modalLoading = document.getElementById('modal-step-loading');
@@ -155,6 +161,10 @@ class DearlyPreviewController {
       if (modal) modal.classList.remove('active');
     } finally {
       this.isPublishing = false;
+      publishButtons.forEach(btn => {
+        btn.disabled = false;
+        if (btn.dataset.origText) btn.innerHTML = btn.dataset.origText;
+      });
     }
   }
 

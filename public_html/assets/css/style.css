@@ -1050,7 +1050,7 @@ h1, h2, h3, h4, h5, h6 {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--border-light);
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-md) var(--space-lg) calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
 }
 
@@ -1186,35 +1186,213 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-/* Mobile Nav Drawer */
-.mobile-nav-drawer {
+/* Mobile Nav Backdrop & Slide Drawer */
+.mobile-nav-backdrop {
   position: fixed;
-  top: var(--header-height);
-  left: 0;
-  right: 0;
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-light);
-  padding: var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  box-shadow: var(--shadow-md);
-  z-index: 45;
-  transform: translateY(-100%);
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 90;
   opacity: 0;
   pointer-events: none;
-  transition: all 0.3s ease;
+  transition: opacity 0.28s ease;
 }
 
-.mobile-nav-drawer.open {
-  transform: translateY(0);
+.mobile-nav-backdrop.show {
   opacity: 1;
   pointer-events: auto;
 }
 
-.mobile-nav-drawer .nav-link {
-  font-size: 1.05rem;
-  padding: 8px 0;
+body.nav-open {
+  overflow: hidden !important;
+}
+
+.mobile-nav-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 290px;
+  max-width: 82vw;
+  background: var(--bg-surface);
+  box-shadow: -8px 0 32px rgba(15, 23, 42, 0.16);
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  transform: translateX(100%);
+  opacity: 1;
+  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+}
+
+.mobile-nav-drawer.open {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.mobile-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 16px;
+}
+
+.mobile-drawer-close {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mobile-drawer-close:hover {
+  background: var(--color-primary-light);
+  transform: scale(1.05);
+}
+
+.mobile-drawer-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-drawer-nav .nav-link {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mobile-drawer-nav .nav-link:hover {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  transform: translateX(3px);
+}
+
+/* Mobile-First Spacing & Typography Optimizations */
+@media (max-width: 640px) {
+  :root {
+    --header-height: 60px;
+    --space-3xl: 36px;
+    --space-2xl: 28px;
+    --space-xl: 20px;
+  }
+
+  .site-header {
+    height: 60px;
+  }
+
+  .logo-img {
+    height: 30px;
+  }
+
+  .hero-section {
+    padding: 32px 0 20px;
+  }
+
+  .hero-title {
+    font-size: clamp(1.85rem, 8vw, 2.4rem);
+    line-height: 1.2;
+    margin-top: 8px;
+    margin-bottom: 10px;
+  }
+
+  .hero-description {
+    font-size: 0.96rem;
+    line-height: 1.55;
+    margin-bottom: 20px;
+    padding: 0 4px;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .hero-buttons .btn {
+    width: 100%;
+    min-height: 48px;
+    font-size: 1rem;
+  }
+
+  .section-header {
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-size: 1.55rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.92rem;
+  }
+
+  .categories-section {
+    padding: 28px 0;
+  }
+
+  .categories-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .category-card {
+    padding: 20px 16px;
+  }
+
+  .cta-banner-section {
+    padding: 32px 0;
+  }
+
+  .cta-banner {
+    padding: 28px 18px;
+  }
+
+  .cta-banner-title {
+    font-size: 1.45rem;
+  }
+
+  .cta-banner-subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+  }
+
+  .cta-banner .btn {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .story-card {
+    padding: 26px 18px;
+    margin: 16px auto;
+    border-radius: 20px;
+  }
+
+  .story-title {
+    font-size: 1.55rem;
+  }
+
+  .story-quote-text {
+    font-size: 1.1rem;
+  }
 }
 
 /* --- Floating Love Notification Toast --- */

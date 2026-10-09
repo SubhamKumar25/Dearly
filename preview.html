@@ -45,7 +45,83 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 32px 16px 80px;
+      padding: 24px 16px 140px; /* Ample clearance so bottom bar never covers story content */
+    }
+
+    /* Bottom Docked Action Bar */
+    .preview-bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 55;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-light);
+      box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.08);
+      padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .preview-bottom-inner {
+      max-width: 620px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .preview-hint {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .preview-actions-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .preview-actions-group .btn-secondary {
+      flex: 1;
+      max-width: 180px;
+      min-height: 48px;
+    }
+
+    .preview-actions-group .btn-primary {
+      flex: 2;
+      min-height: 48px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      box-shadow: 0 6px 22px rgba(244, 63, 94, 0.4);
+    }
+
+    @media (max-width: 480px) {
+      .preview-wrapper {
+        padding: 16px 12px 150px;
+      }
+      .story-card {
+        padding: 28px 18px;
+      }
+      .preview-actions-group {
+        gap: 8px;
+      }
+      .preview-actions-group .btn-secondary {
+        max-width: 130px;
+        padding: 10px 12px;
+        font-size: 0.86rem;
+      }
+      .preview-actions-group .btn-primary {
+        padding: 10px 14px;
+        font-size: 0.95rem;
+      }
     }
     .story-card {
       background: var(--bg-surface);
@@ -123,19 +199,17 @@
   <!-- Ambient Particles -->
   <div id="ambient-particles" class="ambient-particles-container"></div>
 
-  <!-- Top Preview Bar -->
+  <!-- Top Preview Header -->
   <aside class="preview-banner" aria-label="Preview Mode Notice">
     <div class="preview-banner-inner">
       <div class="preview-mode-tag">
-        <span>👁️ <strong>Creator Preview</strong></span>
-        <span style="font-weight: 400; font-size: 0.85rem; color: var(--text-light);">(Step through to test recipient experience)</span>
+        <span class="preview-mode-icon">👁️</span>
+        <span><strong>Creator Preview</strong></span>
+        <span class="preview-mode-subtext">(Review before sharing)</span>
       </div>
-      <div style="display: flex; gap: 8px; align-items: center;">
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-preview-back">
-          ✏️ Back to Edit
-        </button>
-        <button type="button" class="btn btn-primary btn-sm" id="btn-preview-publish">
-          ✨ Create & Share
+      <div>
+        <button type="button" class="btn btn-ghost btn-sm btn-preview-back" id="btn-preview-back-top">
+          ✏️ Edit Gift
         </button>
       </div>
     </div>
@@ -147,6 +221,24 @@
       <!-- Mounted by recipient.js and preview.js -->
     </div>
   </main>
+
+  <!-- Bottom Docked Publishing Action Bar -->
+  <aside class="preview-bottom-bar" id="preview-bottom-bar" aria-label="Publish Actions">
+    <div class="preview-bottom-inner">
+      <div class="preview-hint">
+        <span class="preview-hint-icon">✨</span>
+        <span class="preview-hint-text">Looks good? Create your private share link.</span>
+      </div>
+      <div class="preview-actions-group">
+        <button type="button" class="btn btn-secondary btn-preview-back" id="btn-preview-back">
+          ← Back to Edit
+        </button>
+        <button type="button" class="btn btn-primary btn-lg btn-preview-publish" id="btn-preview-publish">
+          Create & Share ✨
+        </button>
+      </div>
+    </div>
+  </aside>
 
   <!-- Share & Publish Modal Overlay -->
   <div class="modal-overlay" id="share-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">

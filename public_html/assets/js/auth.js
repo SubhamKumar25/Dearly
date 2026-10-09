@@ -315,6 +315,13 @@ class DearlyAuthService {
     const navActions = document.querySelector('.nav-actions');
     if (!navActions) return;
 
+    const hasMobileToggle = document.getElementById('mobile-nav-toggle') !== null;
+    const toggleHtml = hasMobileToggle ? `
+      <button type="button" class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Open navigation menu" aria-expanded="false">
+        ☰
+      </button>
+    ` : '';
+
     if (this.user) {
       const name = this.getUserName();
       navActions.innerHTML = `
@@ -330,6 +337,7 @@ class DearlyAuthService {
         <button type="button" class="btn btn-ghost btn-sm" id="btn-global-logout" title="Log Out">
           Log Out
         </button>
+        ${toggleHtml}
       `;
 
       const btnLogout = document.getElementById('btn-global-logout');
@@ -339,8 +347,24 @@ class DearlyAuthService {
     } else {
       navActions.innerHTML = `
         <a href="auth.html" class="btn btn-ghost btn-sm">Log In</a>
-        <a href="create.html?type=love" class="btn btn-primary btn-sm">Create Something ✨</a>
+        <a href="#experiences" class="btn btn-primary btn-sm">Create Gift ✨</a>
+        ${toggleHtml}
       `;
+    }
+
+    // Re-bind toggle if it was re-rendered
+    const newToggle = document.getElementById('mobile-nav-toggle');
+    const mobileDrawer = document.getElementById('mobile-nav-drawer');
+    const mobileBackdrop = document.getElementById('mobile-nav-backdrop');
+    if (newToggle && mobileDrawer) {
+      newToggle.onclick = (e) => {
+        e.stopPropagation();
+        const isOpen = mobileDrawer.classList.toggle('open');
+        if (mobileBackdrop) mobileBackdrop.classList.toggle('show', isOpen);
+        newToggle.setAttribute('aria-expanded', isOpen);
+        newToggle.textContent = isOpen ? '✕' : '☰';
+        document.body.classList.toggle('nav-open', isOpen);
+      };
     }
   }
 

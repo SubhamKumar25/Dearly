@@ -4,23 +4,63 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. Mobile Navigation Toggle
+  // 1. Mobile Navigation Toggle & Drawer Controller
   const mobileToggle = document.getElementById('mobile-nav-toggle');
   const mobileDrawer = document.getElementById('mobile-nav-drawer');
+  const mobileBackdrop = document.getElementById('mobile-nav-backdrop');
+  const mobileClose = document.getElementById('mobile-drawer-close');
+
+  const openDrawer = () => {
+    if (mobileDrawer) mobileDrawer.classList.add('open');
+    if (mobileBackdrop) mobileBackdrop.classList.add('show');
+    if (mobileToggle) {
+      mobileToggle.setAttribute('aria-expanded', 'true');
+      mobileToggle.textContent = '✕';
+    }
+    document.body.classList.add('nav-open');
+  };
+
+  const closeDrawer = () => {
+    if (mobileDrawer) mobileDrawer.classList.remove('open');
+    if (mobileBackdrop) mobileBackdrop.classList.remove('show');
+    if (mobileToggle) {
+      mobileToggle.setAttribute('aria-expanded', 'false');
+      mobileToggle.textContent = '☰';
+    }
+    document.body.classList.remove('nav-open');
+  };
 
   if (mobileToggle && mobileDrawer) {
-    mobileToggle.addEventListener('click', () => {
-      const isOpen = mobileDrawer.classList.toggle('open');
-      mobileToggle.setAttribute('aria-expanded', isOpen);
-      mobileToggle.textContent = isOpen ? '✕' : '☰';
+    mobileToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = mobileDrawer.classList.contains('open');
+      if (isOpen) {
+        closeDrawer();
+      } else {
+        openDrawer();
+      }
     });
+
+    if (mobileClose) {
+      mobileClose.addEventListener('click', closeDrawer);
+    }
+
+    if (mobileBackdrop) {
+      mobileBackdrop.addEventListener('click', closeDrawer);
+    }
 
     // Close when clicking nav links inside drawer
     mobileDrawer.querySelectorAll('.nav-link').forEach((link) => {
       link.addEventListener('click', () => {
-        mobileDrawer.classList.remove('open');
-        mobileToggle.textContent = '☰';
+        closeDrawer();
       });
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && mobileDrawer.classList.contains('open')) {
+        closeDrawer();
+      }
     });
   }
 

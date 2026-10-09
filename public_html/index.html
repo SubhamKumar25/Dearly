@@ -37,28 +37,38 @@
         <li><a href="#experiences" class="nav-link">Experiences</a></li>
         <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
         <li><a href="#faq" class="nav-link">FAQ</a></li>
-        <li id="nav-dashboard-li" style="display: none;"><a href="dashboard.html" class="nav-link" style="color: var(--color-primary); font-weight: 700;">My Surprises</a></li>
+        <li id="nav-dashboard-li" style="display: none;"><a href="dashboard.html" class="nav-link"
+            style="color: var(--color-primary); font-weight: 700;">My Surprises</a></li>
       </ul>
 
       <!-- Nav CTA & Mobile Toggle -->
       <div class="nav-actions">
         <a href="auth.html" class="btn btn-ghost btn-sm" id="btn-nav-login">Log In</a>
-        <a href="#experiences" class="btn btn-primary btn-sm">Create Something ✨</a>
-        <button type="button" class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation menu">
+        <a href="#experiences" class="btn btn-primary btn-sm" id="btn-header-create">Create Gift ✨</a>
+        <button type="button" class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Open navigation menu"
+          aria-expanded="false">
           ☰
         </button>
       </div>
     </div>
   </header>
 
-  <!-- Mobile Drawer -->
-  <div class="mobile-nav-drawer" id="mobile-nav-drawer">
-    <a href="#experiences" class="nav-link">Experiences</a>
-    <a href="#how-it-works" class="nav-link">How It Works</a>
-    <a href="#faq" class="nav-link">FAQ</a>
-    <a href="auth.html" class="nav-link" id="drawer-login-link">Log In / Sign Up</a>
-    <a href="dashboard.html" class="nav-link" id="drawer-dashboard-link" style="display: none; color: var(--color-primary); font-weight: 700;">My Surprises & Replies 💌</a>
-    <a href="create.html?type=love" class="btn btn-primary" style="margin-top: 8px;">Create Something ✨</a>
+  <!-- Mobile Drawer Overlay -->
+  <div class="mobile-nav-backdrop" id="mobile-nav-backdrop"></div>
+  <div class="mobile-nav-drawer" id="mobile-nav-drawer" role="dialog" aria-modal="true" aria-label="Mobile Navigation">
+    <div class="mobile-drawer-header">
+      <img src="assets/images/logo.svg" alt="DEARLY" style="height: 28px;">
+      <button type="button" class="mobile-drawer-close" id="mobile-drawer-close"
+        aria-label="Close navigation menu">✕</button>
+    </div>
+    <nav class="mobile-drawer-nav">
+      <a href="#experiences" class="nav-link">💌 Experiences</a>
+      <a href="#how-it-works" class="nav-link">✨ How It Works</a>
+      <a href="#faq" class="nav-link">❓ FAQ</a>
+      <a href="auth.html" class="nav-link" id="drawer-login-link">👤 Log In / Sign Up</a>
+      <a href="dashboard.html" class="nav-link" id="drawer-dashboard-link"
+        style="display: none; color: var(--color-primary); font-weight: 700;">🎁 My Surprises & Replies</a>
+    </nav>
   </div>
 
   <main>
@@ -72,11 +82,11 @@
           Turn your feelings into a <span class="text-gradient">moment</span>.
         </h1>
         <p class="hero-description">
-          Create a beautiful little experience for someone who matters — then send it with one private link. No app
+          Create a beautiful little experience for someone who matters then send it with one private link. No app
           download, no sign up required.
         </p>
         <div class="hero-buttons">
-          <a href="#experiences" class="btn btn-primary btn-lg">Create Something ✨</a>
+          <a href="#experiences" class="btn btn-primary btn-lg">Create Your Gift ✨</a>
           <a href="#how-it-works" class="btn btn-secondary btn-lg">See How It Works</a>
         </div>
       </div>
@@ -241,15 +251,15 @@
       </div>
     </section>
 
-    <!-- Final CTA Banner -->
+    <!-- Final CTA Section -->
     <section class="cta-banner-section">
       <div class="container">
         <div class="cta-banner">
-          <h2 class="cta-banner-title">Turn your feelings into a moment today.</h2>
+          <h2 class="cta-banner-title">Turn your feelings into a moment.</h2>
           <p class="cta-banner-subtitle">
-            It takes just two minutes to make something they will remember forever.
+            Takes just two minutes. Private, beautiful, and completely free.
           </p>
-          <a href="#experiences" class="btn btn-primary btn-lg">Create Something ✨</a>
+          <a href="#experiences" class="btn btn-secondary btn-lg">Choose An Experience ↑</a>
         </div>
       </div>
     </section>
