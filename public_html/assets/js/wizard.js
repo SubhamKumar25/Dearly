@@ -485,7 +485,7 @@ const WIZARD_CONFIG = {
             id: 'msg_1',
             label: 'How you met or when you knew',
             placeholder: "e.g. The first time we sat together for coffee, three hours felt like five minutes.",
-            maxlength: 220,
+            maxlength: 250,
             required: true
           },
           {
@@ -493,7 +493,7 @@ const WIZARD_CONFIG = {
             id: 'msg_2',
             label: 'Your favourite memory together',
             placeholder: "e.g. That quiet evening under the stars when everything just clicked.",
-            maxlength: 220,
+            maxlength: 250,
             required: true
           },
           {
@@ -501,7 +501,7 @@ const WIZARD_CONFIG = {
             id: 'msg_3',
             label: 'What you love most about them',
             placeholder: "e.g. Your kindness, your laughter, and the way you make every place feel like home.",
-            maxlength: 220,
+            maxlength: 250,
             required: true
           }
         ],
@@ -935,7 +935,7 @@ class DearlyWizard {
         counterHtml = `
           <div class="form-label">
             <span>${field.label} ${field.required ? '<span style="color:var(--color-primary)">*</span>' : ''}</span>
-            <span class="char-counter" id="counter-${field.id}">${currentLen} / ${max}</span>
+            <span class="char-counter" id="counter-${field.id}">${currentLen} / ${max} characters</span>
           </div>
         `;
       }
@@ -1021,7 +1021,7 @@ class DearlyWizard {
                 input.style.borderColor = '';
               }
             } else {
-              counter.textContent = `${input.value.length} / ${input.maxLength}`;
+              counter.textContent = `${input.value.length} / ${input.maxLength} characters`;
             }
           }
         });
