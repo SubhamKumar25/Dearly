@@ -317,12 +317,12 @@ VALUES (
     'experience-photos',
     'experience-photos',
     true,
-    5242880, -- 5 MB limit per photo
+    2097152, -- 2 MB limit per photo
     ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
 )
 ON CONFLICT (id) DO UPDATE SET
     public = true,
-    file_size_limit = 5242880,
+    file_size_limit = 2097152,
     allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 
 -- Explicitly ensure public visibility on experience-photos bucket

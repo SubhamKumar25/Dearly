@@ -1241,97 +1241,106 @@ class DearlyWizard {
   async handlePhotoFiles(files) {
     const maxPhotos = 5;
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-    const maxSize = 12 * 1024 * 1024; // 12MB
+    const maxRawSize = 25 * 1024 * 1024; // Allow selecting up to 25MB raw camera photos
+
+    const totalToProcess = Math.min(files.length, maxPhotos - this.uploadedPhotos.length);
+    if (this.uploadedPhotos.length >= maxPhotos) {
+      this.showToast(`Maximum ${maxPhotos} photos allowed.`);
+      return;
+    }
 
     for (let i = 0; i < files.length; i++) {
       if (this.uploadedPhotos.length >= maxPhotos) {
-        this.showToast(`Maximum ${maxPhotos} photos allowed.`);
+        this.showToast(`Maximum ${maxPhotos} photos reached.`);
         break;
       }
 
       const file = files[i];
 
-      if (!allowedTypes.includes(file.type)) {
+      if (!allowedTypes.includes(file.type.toLowerCase())) {
         this.showToast(`Invalid file format: ${file.name}. Use JPG, PNG or WebP.`);
         continue;
       }
 
-      if (file.size > maxSize) {
-        this.showToast(`File too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Max 12MB allowed.`);
+      if (file.size > maxRawSize) {
+        this.showToast(`File too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please select a photo under 25MB.`);
         continue;
       }
 
-      this.showToast('Optimizing photo for story... 📷');
+      this.showToast(`Optimizing photo ${this.uploadedPhotos.length + 1} of ${maxPhotos} (compressing under 2MB)... 📷`);
 
       try {
-        const compressedDataUrl = await this.compressImageFile(file);
-        this.uploadedPhotos.push({
-          file: file,
-          dataUrl: compressedDataUrl,
-          name: file.name,
-          size: compressedDataUrl.length
-        });
-        this.renderPhotoPreviews();
-        this.saveState();
+        let compressed;
+        if (window.DearlyImageCompressor) {
+          compressed = await window.DearlyImageCompressor.compress(file);
+        } else {
+          const cDataUrl = await this.compressDataUrl(await this.readFileAsDataUrl(file));
+          compressed = {
+            dataUrl: cDataUrl,
+            name: file.name,
+            size: cDataUrl.length,
+            blob: file
+          };
+        }
+
+        if (compressed && compressed.dataUrl) {
+          this.uploadedPhotos.push({
+            file: compressed.blob || file,
+            dataUrl: compressed.dataUrl,
+            name: compressed.name || file.name,
+            size: compressed.size || file.size
+          });
+          this.renderPhotoPreviews();
+          this.saveState();
+        }
       } catch (err) {
         console.warn('Image compression fallback:', err);
-        const reader = new FileReader();
-        reader.onload = (e) => {
+        try {
+          const dataUrl = await this.readFileAsDataUrl(file);
           this.uploadedPhotos.push({
             file: file,
-            dataUrl: e.target.result,
+            dataUrl: dataUrl,
             name: file.name,
             size: file.size
           });
           this.renderPhotoPreviews();
           this.saveState();
-        };
-        reader.readAsDataURL(file);
+        } catch (readErr) {
+          this.showToast(`Could not load photo: ${file.name}`);
+        }
       }
+
+      // Brief breather so UI updates smoothly
+      await new Promise(r => setTimeout(r, 40));
     }
+
+    this.showToast(`Photos ready! (${this.uploadedPhotos.length}/${maxPhotos}) ✨`);
   }
 
-  compressImageFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.75) {
+  readFileAsDataUrl(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        this.compressDataUrl(e.target.result, maxWidth, maxHeight, quality)
-          .then(resolve)
-          .catch(() => resolve(e.target.result));
-      };
-      reader.onerror = () => reject(new Error('Failed to read photo file'));
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsDataURL(file);
     });
   }
 
-  compressDataUrl(dataUrl, maxWidth = 1200, maxHeight = 1200, quality = 0.75) {
-    return new Promise((resolve) => {
-      if (!dataUrl || typeof dataUrl !== 'string') return resolve(dataUrl);
-      const img = new Image();
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
+  async compressImageFile(file, maxWidth = 1920, maxHeight = 1920, quality = 0.82) {
+    if (window.DearlyImageCompressor) {
+      const result = await window.DearlyImageCompressor.compress(file, { maxDimension: Math.max(maxWidth, maxHeight), quality });
+      return result ? result.dataUrl : null;
+    }
+    const dataUrl = await this.readFileAsDataUrl(file);
+    return this.compressDataUrl(dataUrl, maxWidth, maxHeight, quality);
+  }
 
-        if (width > maxWidth || height > maxHeight) {
-          if (width > height) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          } else {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = () => resolve(dataUrl);
-      img.src = dataUrl;
-    });
+  async compressDataUrl(dataUrl, maxWidth = 1920, maxHeight = 1920, quality = 0.82) {
+    if (window.DearlyImageCompressor) {
+      const result = await window.DearlyImageCompressor.compress(dataUrl, { maxDimension: Math.max(maxWidth, maxHeight), quality });
+      return result ? result.dataUrl : dataUrl;
+    }
+    return dataUrl;
   }
 
   renderPhotoPreviews() {

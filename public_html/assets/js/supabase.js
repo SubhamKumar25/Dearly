@@ -169,10 +169,26 @@ class DearlyDatabaseService {
         }
       }
 
+      // Safety check: Ensure uploadBlob is strictly <= 2 MB (2,097,152 bytes)
+      const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+      if (uploadBlob && uploadBlob.size > MAX_PHOTO_BYTES && window.DearlyImageCompressor) {
+        try {
+          console.log(`Photo #${i + 1} exceeds 2MB (${(uploadBlob.size / 1024 / 1024).toFixed(2)} MB). Compressing to <= 2 MB before upload...`);
+          const compressed = await window.DearlyImageCompressor.compress(uploadBlob);
+          if (compressed && compressed.blob && compressed.blob.size <= MAX_PHOTO_BYTES) {
+            uploadBlob = compressed.blob;
+            contentType = 'image/jpeg';
+            fileExt = 'jpg';
+          }
+        } catch (cErr) {
+          console.warn('Pre-upload compression check warning:', cErr);
+        }
+      }
+
       const safeExt = ['jpg', 'jpeg', 'png', 'webp'].includes(fileExt.toLowerCase()) ? fileExt.toLowerCase() : 'jpg';
 
-      // 3. Upload to Supabase Storage if client is ready and we have a valid Blob
-      if (this.isReady && this.client && uploadBlob) {
+      // 3. Upload to Supabase Storage if client is ready and we have a valid Blob (strictly <= 2MB)
+      if (this.isReady && this.client && uploadBlob && uploadBlob.size <= MAX_PHOTO_BYTES) {
         try {
           const timestamp = Date.now();
           const randomId = Math.random().toString(36).substring(2, 8);

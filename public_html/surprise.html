@@ -127,17 +127,46 @@
     .sound-toggle-btn:hover {
       transform: scale(1.08);
     }
+    .recipient-logo-img {
+      height: 40px;
+      width: auto;
+      transition: transform var(--transition-fast);
+    }
     @media (max-width: 480px) {
       body.story-mode {
         padding: 16px 12px;
       }
       .story-card {
         padding: 28px 18px;
-        margin: 48px auto 16px;
+        margin: 54px auto 16px;
         border-radius: var(--radius-lg);
       }
       .recipient-header {
-        padding: 10px 14px;
+        padding: 10px 12px;
+        gap: 8px;
+      }
+      .recipient-logo-img {
+        height: 32px !important;
+      }
+      .btn-music-toggle .music-label {
+        display: none;
+      }
+      .btn-music-toggle {
+        padding: 6px 10px !important;
+      }
+    }
+    @media (max-width: 360px) {
+      .recipient-header {
+        padding: 8px 10px;
+      }
+      .recipient-logo-img {
+        height: 28px !important;
+      }
+      .btn-bookmark-gift span {
+        display: none;
+      }
+      .btn-bookmark-gift {
+        padding: 6px 10px !important;
       }
     }
   </style>
@@ -149,10 +178,10 @@
 
   <!-- Subtle Top Header -->
   <header class="recipient-header">
-    <a href="index.html" class="logo-link" style="opacity: 0.85;">
-      <img src="assets/images/logo.svg" alt="DEARLY" style="height: 30px;">
+    <a href="index.html" class="logo-link" aria-label="DEARLY Home" style="opacity: 0.95;">
+      <img src="assets/images/logo.svg" alt="DEARLY" class="recipient-logo-img">
     </a>
-    <div style="display: flex; align-items: center; gap: 8px;">
+    <div class="recipient-header-actions" style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
       <button type="button" class="btn-bookmark-gift" id="btn-bookmark-gift" title="Save this gift to your collection" aria-label="Save this gift" style="border-radius: 999px; font-size: 0.82rem; font-weight: 600; padding: 6px 14px; background: rgba(255, 255, 255, 0.95); border: 1px solid var(--border-light); box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--text-main); transition: transform 0.2s ease;">
         🔖 <span>Save Gift</span>
       </button>
